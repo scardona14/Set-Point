@@ -1,0 +1,33 @@
+{
+  "name": "Set Point - Tennis Match Organizer",
+  "short_name": "Set Point",
+  "description": "Organize tennis matches with friends, track scores, and manage your tennis community",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0f172a",
+  "theme_color": "#164e63",
+  "orientation": "portrait-primary",
+  "categories": ["sports", "social", "productivity"],
+  "icons": [
+    {
+      "src": "/tennis-ball-realistic.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/tennis-ball-realistic.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/placeholder.svg?height=800&width=400",
+      "sizes": "400x800",
+      "type": "image/svg+xml",
+      "form_factor": "narrow"
+    }
+  ]
+}
