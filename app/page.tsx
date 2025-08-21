@@ -7,8 +7,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { CalendarDays, Users, Trophy, Plus, Bell, User } from "lucide-react"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import { Badge } from "@/components/ui/badge"
+import { Textarea } from "@/components/ui/textarea"
 import Image from "next/image"
 
 interface Match {
@@ -20,6 +22,49 @@ interface Match {
   status: "upcoming" | "completed" | "in-progress"
   score?: string
   notes?: string
+}
+
+interface Tournament {
+  id: string
+  name: string
+  type: "single-elimination" | "double-elimination" | "round-robin"
+  status: "upcoming" | "active" | "completed"
+  participants: string[]
+  startDate: string
+  prize?: string
+  entryFee?: number
+  description?: string
+  maxParticipants?: number
+}
+
+interface Achievement {
+  id: string
+  title: string
+  description: string
+  icon: string
+  rarity: "common" | "rare" | "epic" | "legendary"
+  unlockedAt?: string
+  category: "matches" | "social" | "performance" | "tournaments"
+}
+
+interface Friend {
+  id: string
+  name: string
+  email: string
+  skillLevel: string
+  matchesPlayed: number
+  winRate: number
+  status: "active" | "pending" | "invited"
+}
+
+interface Notification {
+  id: string
+  type: "match_reminder" | "friend_request" | "tournament" | "achievement" | "social"
+  title: string
+  message: string
+  timestamp: string
+  read: boolean
+  actionUrl?: string
 }
 
 const USERS_STORAGE_KEY = "setpoint_users"
@@ -76,8 +121,103 @@ export default function TennisMatchOrganizer() {
   const [currentUser, setCurrentUser] = useState<AppUser | null>(null)
   const [isSignUp, setIsSignUp] = useState(false)
   const [matches, setMatches] = useState<Match[]>([])
+  const [tournaments, setTournaments] = useState<Tournament[]>([])
+  const [achievements, setAchievements] = useState<Achievement[]>([])
+  const [friends, setFriends] = useState<Friend[]>([])
+  const [notifications, setNotifications] = useState<Notification[]>([])
   const [authError, setAuthError] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
+  const [activeView, setActiveView] = useState<"dashboard" | "tournaments" | "analytics" | "social" | "performance">(
+    "dashboard",
+  )
+  const [showCreateMatch, setShowCreateMatch] = useState(false)
+  const [showFriends, setShowFriends] = useState(false)
+  const [showScoreTracker, setShowScoreTracker] = useState(false)
+  const [showNotifications, setShowNotifications] = useState(false)
+  const [showEmailInvite, setShowEmailInvite] = useState(false)
+  const [showCreateTournament, setShowCreateTournament] = useState(false)
+  const [trackingMatchId, setTrackingMatchId] = useState<string | null>(null)
+  const [matchForm, setMatchForm] = useState({
+    opponent: "",
+    date: "",
+    time: "",
+    location: "",
+    notes: "",
+  })
+  const [emailInviteForm, setEmailInviteForm] = useState({
+    email: "",
+    message: "",
+  })
+  const [tournamentForm, setTournamentForm] = useState({
+    name: "",
+    type: "single-elimination" as const,
+    startDate: "",
+    prize: "",
+    entryFee: "",
+    description: "",
+    maxParticipants: "8",
+  })
+  const [showUserMenu, setShowUserMenu] = useState(false)
+
+  useEffect(() => {
+    if (currentUser) {
+      // Initialize achievements
+      const defaultAchievements: Achievement[] = [
+        {
+          id: "first_match",
+          title: "First Match",
+          description: "Played your first tennis match",
+          icon: "🎾",
+          rarity: "common",
+          category: "matches",
+          unlockedAt: matches.length > 0 ? new Date().toISOString() : undefined,
+        },
+        {
+          id: "social_butterfly",
+          title: "Social Butterfly",
+          description: "Added 5 tennis friends",
+          icon: "🦋",
+          rarity: "rare",
+          category: "social",
+          unlockedAt: friends.length >= 5 ? new Date().toISOString() : undefined,
+        },
+        {
+          id: "tournament_winner",
+          title: "Tournament Champion",
+          description: "Won your first tournament",
+          icon: "🏆",
+          rarity: "epic",
+          category: "tournaments",
+        },
+        {
+          id: "perfect_week",
+          title: "Perfect Week",
+          description: "Won all matches in a week",
+          icon: "⭐",
+          rarity: "legendary",
+          category: "performance",
+        },
+      ]
+      setAchievements(defaultAchievements)
+
+      // Sample tournaments
+      const sampleTournaments: Tournament[] = [
+        {
+          id: "summer_open",
+          name: "Summer Open 2024",
+          type: "single-elimination",
+          status: "upcoming",
+          participants: ["John Doe", "Jane Smith", "Mike Johnson"],
+          startDate: "2024-07-15",
+          prize: "$500 Winner Takes All",
+          entryFee: 25,
+          description: "Annual summer tennis tournament",
+          maxParticipants: 16,
+        },
+      ]
+      setTournaments(sampleTournaments)
+    }
+  }, [currentUser, matches.length, friends.length])
 
   useEffect(() => {
     if (typeof window === "undefined") return
@@ -194,84 +334,288 @@ export default function TennisMatchOrganizer() {
     })
   }
 
-  if (!currentUser) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
-              <Image
-                src="/tennis-ball-realistic.png"
-                alt="Set Point Logo"
-                width={64}
-                height={64}
-                className="rounded-full"
-              />
-            </div>
-            <CardTitle className="font-serif text-2xl">Set Point</CardTitle>
-            <CardDescription>
-              Your ultimate tennis organizer - organize matches with friends, track scores, and stay connected
-            </CardDescription>
+  const handleCreateMatch = (matchData: any) => {
+    const newMatch: Match = {
+      id: Date.now().toString(),
+      ...matchData,
+      status: "upcoming" as const,
+    }
+
+    const updatedMatches = [...matches, newMatch]
+    setMatches(updatedMatches)
+
+    if (currentUser) {
+      const userData = getUserData(currentUser.id) || {}
+      saveUserData(currentUser.id, { ...userData, matches: updatedMatches })
+    }
+
+    setShowCreateMatch(false)
+  }
+
+  const handleStartScoreTracking = (matchId: string) => {
+    setTrackingMatchId(matchId)
+    setShowScoreTracker(true)
+  }
+
+  const handleSaveScore = (matchId: string, finalScore: string, winner: string) => {
+    const updatedMatches = matches.map((match) =>
+      match.id === matchId ? { ...match, status: "completed" as const, score: finalScore } : match,
+    )
+    setMatches(updatedMatches)
+
+    if (currentUser) {
+      const userData = getUserData(currentUser.id) || {}
+      saveUserData(currentUser.id, { ...userData, matches: updatedMatches })
+    }
+
+    setShowScoreTracker(false)
+    setTrackingMatchId(null)
+  }
+
+  const handleCreateMatchInline = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!matchForm.opponent || !matchForm.date || !matchForm.time || !matchForm.location) {
+      return
+    }
+
+    const newMatch: Match = {
+      id: Date.now().toString(),
+      opponent: matchForm.opponent,
+      date: matchForm.date,
+      time: matchForm.time,
+      location: matchForm.location,
+      notes: matchForm.notes,
+      status: "upcoming" as const,
+    }
+
+    const updatedMatches = [...matches, newMatch]
+    setMatches(updatedMatches)
+
+    if (currentUser) {
+      const userData = getUserData(currentUser.id) || {}
+      saveUserData(currentUser.id, { ...userData, matches: updatedMatches })
+    }
+
+    setShowCreateMatch(false)
+    setMatchForm({ opponent: "", date: "", time: "", location: "", notes: "" })
+  }
+
+  const handleSendEmailInvite = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!emailInviteForm.email) return
+
+    // Simulate email sending
+    const newNotification: Notification = {
+      id: Date.now().toString(),
+      type: "friend_request",
+      title: "Friend Invitation Sent",
+      message: `Invitation sent to ${emailInviteForm.email}`,
+      timestamp: new Date().toISOString(),
+      read: false,
+    }
+
+    setNotifications((prev) => [newNotification, ...prev])
+    setShowEmailInvite(false)
+    setEmailInviteForm({ email: "", message: "" })
+  }
+
+  const handleCreateTournament = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!tournamentForm.name || !tournamentForm.startDate) return
+
+    const newTournament: Tournament = {
+      id: Date.now().toString(),
+      name: tournamentForm.name,
+      type: tournamentForm.type,
+      status: "upcoming",
+      participants: [currentUser?.name || ""],
+      startDate: tournamentForm.startDate,
+      prize: tournamentForm.prize,
+      entryFee: tournamentForm.entryFee ? Number.parseInt(tournamentForm.entryFee) : undefined,
+      description: tournamentForm.description,
+      maxParticipants: Number.parseInt(tournamentForm.maxParticipants),
+    }
+
+    setTournaments((prev) => [...prev, newTournament])
+    setShowCreateTournament(false)
+    setTournamentForm({
+      name: "",
+      type: "single-elimination",
+      startDate: "",
+      prize: "",
+      entryFee: "",
+      description: "",
+      maxParticipants: "8",
+    })
+  }
+
+  const renderDashboard = () => (
+    <div className="space-y-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Total Matches</CardTitle>
+            <span className="text-2xl">🎾</span>
           </CardHeader>
           <CardContent>
-            {authError && (
-              <Alert className="mb-4 border-red-200 bg-red-50 text-red-800">
-                <AlertDescription>{authError}</AlertDescription>
-              </Alert>
+            <div className="text-2xl font-bold">{matches.length}</div>
+            <p className="text-xs text-muted-foreground">All time matches</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+            <span className="text-2xl">🏆</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {matches.length > 0
+                ? Math.round(
+                    (matches.filter((m) => m.status === "completed" && m.score?.includes("Won")).length /
+                      matches.filter((m) => m.status === "completed").length) *
+                      100,
+                  )
+                : 0}
+              %
+            </div>
+            <p className="text-xs text-muted-foreground">Match win percentage</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Friends</CardTitle>
+            <span className="text-2xl">👥</span>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{friends.length}</div>
+            <p className="text-xs text-muted-foreground">Tennis partners</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <Card>
+          <CardHeader>
+            <CardTitle>Quick Actions</CardTitle>
+            <CardDescription>Get started with your tennis activities</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button onClick={() => setShowCreateMatch(true)} className="w-full">
+              ➕ Schedule New Match
+            </Button>
+            <Button variant="outline" onClick={() => setShowFriends(true)} className="w-full">
+              👥 Manage Friends
+            </Button>
+            <Button variant="outline" onClick={() => setActiveView("tournaments")} className="w-full">
+              🏆 Join Tournament
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Recent Activity</CardTitle>
+            <CardDescription>Your latest tennis activities</CardDescription>
+          </CardHeader>
+          <CardContent>
+            {matches.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground mb-4">No matches yet!</p>
+                <Button onClick={() => setShowCreateMatch(true)}>Schedule Your First Match</Button>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {matches.slice(0, 3).map((match) => (
+                  <div key={match.id} className="flex items-center justify-between p-3 border rounded-lg">
+                    <div>
+                      <p className="font-medium">vs {match.opponent}</p>
+                      <p className="text-sm text-muted-foreground">
+                        {match.date} at {match.time}
+                      </p>
+                    </div>
+                    <Badge variant={match.status === "completed" ? "default" : "secondary"}>{match.status}</Badge>
+                  </div>
+                ))}
+              </div>
             )}
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+
+  if (!currentUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-teal-50 flex items-center justify-center p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="mx-auto mb-4">
+              <Image src="/tennis-ball-realistic.png" alt="Set Point Logo" width={80} height={80} className="mx-auto" />
+            </div>
+            <CardTitle className="text-2xl font-bold text-cyan-900">Set Point</CardTitle>
+            <CardDescription>Your ultimate tennis organizer</CardDescription>
+          </CardHeader>
+          <CardContent>
             <Tabs value={isSignUp ? "signup" : "signin"} className="w-full">
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger
-                  value="signin"
-                  onClick={() => {
-                    setIsSignUp(false)
-                    setAuthError("")
-                  }}
-                >
+                <TabsTrigger value="signin" onClick={() => setIsSignUp(false)}>
                   Sign In
                 </TabsTrigger>
-                <TabsTrigger
-                  value="signup"
-                  onClick={() => {
-                    setIsSignUp(true)
-                    setAuthError("")
-                  }}
-                >
+                <TabsTrigger value="signup" onClick={() => setIsSignUp(true)}>
                   Sign Up
                 </TabsTrigger>
               </TabsList>
-              <TabsContent value="signin">
+
+              <TabsContent value="signin" className="space-y-4">
                 <form onSubmit={handleAuth} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" placeholder="your@email.com" required />
+                    <Input id="email" type="email" placeholder="Enter your email" required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
-                    <Input id="password" name="password" type="password" required />
+                    <Input id="password" type="password" placeholder="Enter your password" required />
                   </div>
+                  {authError && (
+                    <Alert>
+                      <AlertDescription>{authError}</AlertDescription>
+                    </Alert>
+                  )}
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Signing In..." : "Sign In"}
+                    {isLoading ? "Signing in..." : "Sign In"}
                   </Button>
                 </form>
               </TabsContent>
-              <TabsContent value="signup">
+
+              <TabsContent value="signup" className="space-y-4">
                 <form onSubmit={handleAuth} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" name="name" placeholder="John Doe" required />
+                    <Input id="name" type="text" placeholder="Enter your full name" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" name="email" type="email" placeholder="your@email.com" required />
+                    <Label htmlFor="email">Email</Label>
+                    <Input id="email" type="email" placeholder="Enter your email" required />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input id="signup-password" name="password" type="password" minLength={6} required />
-                    <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>
+                    <Label htmlFor="password">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      placeholder="Create a password (min 6 characters)"
+                      required
+                      minLength={6}
+                    />
                   </div>
+                  {authError && (
+                    <Alert>
+                      <AlertDescription>{authError}</AlertDescription>
+                    </Alert>
+                  )}
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Creating Account..." : "Create Account"}
+                    {isLoading ? "Creating account..." : "Create Account"}
                   </Button>
                 </form>
               </TabsContent>
@@ -283,121 +627,139 @@ export default function TennisMatchOrganizer() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="border-b bg-card sticky top-0 z-40">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center">
-                <Image
-                  src="/tennis-ball-realistic.png"
-                  alt="Set Point Logo"
-                  width={40}
-                  height={40}
-                  className="rounded-full"
-                />
+    <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-teal-50">
+      <header className="bg-white border-b border-cyan-200 px-4 py-3">
+        <div className="max-w-7xl mx-auto flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <Image src="/tennis-ball-realistic.png" alt="Set Point Logo" width={40} height={40} />
+            <h1 className="text-xl font-bold text-cyan-900">Set Point</h1>
+          </div>
+
+          <div className="flex items-center space-x-4">
+            <Button variant="ghost" size="sm">
+              🔔 {notifications.length > 0 && <Badge className="ml-1">{notifications.length}</Badge>}
+            </Button>
+
+            <div className="flex items-center space-x-2">
+              <div className="w-8 h-8 bg-cyan-600 rounded-full flex items-center justify-center text-white text-sm font-medium">
+                {currentUser.name.charAt(0).toUpperCase()}
               </div>
-              <h1 className="font-serif text-xl font-bold">Set Point</h1>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="ghost" size="icon">
-                <Bell className="h-5 w-5" />
-              </Button>
-              <Button variant="ghost" size="icon" onClick={handleLogout}>
-                <User className="h-5 w-5" />
+              <span className="text-sm font-medium text-gray-700">{currentUser.name}</span>
+              <Button variant="ghost" size="sm" onClick={handleLogout}>
+                🚪 Logout
               </Button>
             </div>
           </div>
         </div>
       </header>
 
-      <main className="container mx-auto px-4 py-8">
-        {/* Quick Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                  <CalendarDays className="h-6 w-6 text-primary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{matches.filter((m) => m.status === "upcoming").length}</p>
-                  <p className="text-sm text-muted-foreground">Upcoming Matches</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-secondary/10">
-                  <Users className="h-6 w-6 text-secondary" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">0</p>
-                  <p className="text-sm text-muted-foreground">Tennis Friends</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-accent/10">
-                  <Trophy className="h-6 w-6 text-accent" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">{matches.filter((m) => m.status === "completed").length}</p>
-                  <p className="text-sm text-muted-foreground">Matches Played</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
-                  <Trophy className="h-6 w-6 text-green-600 dark:text-green-400" />
-                </div>
-                <div>
-                  <p className="text-2xl font-bold">0%</p>
-                  <p className="text-sm text-muted-foreground">Win Rate</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
+      <main className="max-w-7xl mx-auto p-4">
+        <Tabs value={activeView} onValueChange={(value) => setActiveView(value as any)} className="space-y-6">
+          <TabsList className="grid w-full grid-cols-5">
+            <TabsTrigger value="dashboard">📊 Dashboard</TabsTrigger>
+            <TabsTrigger value="tournaments">🏆 Tournaments</TabsTrigger>
+            <TabsTrigger value="analytics">📈 Analytics</TabsTrigger>
+            <TabsTrigger value="social">👥 Social</TabsTrigger>
+            <TabsTrigger value="performance">🎯 Performance</TabsTrigger>
+          </TabsList>
 
-        {/* Welcome Message for New Users */}
-        <Card>
-          <CardContent className="p-8 text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
-              <Image
-                src="/tennis-ball-realistic.png"
-                alt="Tennis Ball"
-                width={64}
-                height={64}
-                className="rounded-full"
-              />
-            </div>
-            <h3 className="font-serif text-xl font-semibold mb-2">Welcome to Set Point, {currentUser.name}!</h3>
-            <p className="text-muted-foreground mb-4">
-              Ready to organize your first tennis match? Start building your tennis network and tracking your progress.
-            </p>
-            <div className="flex gap-2 justify-center">
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Schedule Your First Match
-              </Button>
-              <Button variant="outline">
-                <Users className="h-4 w-4 mr-2" />
-                Find Tennis Friends
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+          <TabsContent value="dashboard">{renderDashboard()}</TabsContent>
+
+          <TabsContent value="tournaments">
+            <Card>
+              <CardHeader>
+                <CardTitle>🏆 Tournament System</CardTitle>
+                <CardDescription>Create and join tennis tournaments</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">Tournament features coming soon!</p>
+                <Button>Create Tournament</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="analytics">
+            <Card>
+              <CardHeader>
+                <CardTitle>📈 Advanced Analytics</CardTitle>
+                <CardDescription>Track your tennis performance and improvement</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">Analytics dashboard coming soon!</p>
+                <Button>View Analytics</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="social">
+            <Card>
+              <CardHeader>
+                <CardTitle>👥 Social Hub</CardTitle>
+                <CardDescription>Connect with friends and share achievements</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">Social features coming soon!</p>
+                <Button>Invite Friends</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="performance">
+            <Card>
+              <CardHeader>
+                <CardTitle>🎯 Performance Tracking</CardTitle>
+                <CardDescription>Detailed performance metrics and coaching insights</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-muted-foreground mb-4">Performance tracking coming soon!</p>
+                <Button>Track Performance</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
+
+      {/* Create Match Dialog */}
+      {showCreateMatch && (
+        <Dialog open={showCreateMatch} onOpenChange={setShowCreateMatch}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Schedule New Match</DialogTitle>
+              <DialogDescription>Create a new tennis match with a friend</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleCreateMatch} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="opponent">Opponent</Label>
+                <Input id="opponent" placeholder="Enter opponent's name" required />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="date">Date</Label>
+                  <Input id="date" type="date" required />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="time">Time</Label>
+                  <Input id="time" type="time" required />
+                </div>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="location">Location</Label>
+                <Input id="location" placeholder="Tennis court location" required />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="notes">Notes (Optional)</Label>
+                <Textarea id="notes" placeholder="Any additional notes..." />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setShowCreateMatch(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Schedule Match</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }
