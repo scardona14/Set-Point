@@ -5,7 +5,7 @@
   "scripts": {
     "build": "next build",
     "build:capacitor": "BUILD_TARGET=capacitor next build",
-    "build:pwa": "next build && next export",
+    "build:pwa": "BUILD_TARGET=pwa next build",
     "build:web": "next build",
     "cap:android": "npx cap open android",
     "cap:build": "npm run build:capacitor && npx cap sync",
