@@ -26,6 +26,27 @@ interface AppUser {
   joinDate?: string
 }
 
+interface Friend {
+  id: string
+  name: string
+  email: string
+  skillLevel: string
+  addedDate: string
+  matchesPlayed: number
+  lastPlayed?: string
+}
+
+interface FriendRequest {
+  id: string
+  fromUserId: string
+  fromUserName: string
+  fromUserEmail: string
+  toEmail: string
+  message: string
+  status: "pending" | "accepted" | "declined"
+  sentDate: string
+}
+
 const USERS_STORAGE_KEY = "setpoint_users"
 const CURRENT_USER_KEY = "setpoint_current_user"
 
@@ -81,6 +102,12 @@ export default function TennisMatchOrganizer() {
     notes: "",
   })
 
+  const [friends, setFriends] = useState<Friend[]>([])
+  const [friendRequests, setFriendRequests] = useState<FriendRequest[]>([])
+  const [showAddFriend, setShowAddFriend] = useState(false)
+  const [friendForm, setFriendForm] = useState({ email: "", message: "" })
+  const [friendsView, setFriendsView] = useState<"list" | "requests" | "add">("list")
+
   useEffect(() => {
     if (typeof window === "undefined") return
 
@@ -93,6 +120,12 @@ export default function TennisMatchOrganizer() {
         const userData = getUserData(savedUserId)
         if (userData?.matches) {
           setMatches(userData.matches)
+        }
+        if (userData?.friends) {
+          setFriends(userData.friends)
+        }
+        if (userData?.friendRequests) {
+          setFriendRequests(userData.friendRequests)
         }
       }
     }
@@ -136,9 +169,11 @@ export default function TennisMatchOrganizer() {
 
         saveUser(newUser)
         localStorage.setItem(CURRENT_USER_KEY, newUser.id)
-        saveUserData(newUser.id, { matches: [] })
+        saveUserData(newUser.id, { matches: [], friends: [], friendRequests: [] })
         setCurrentUser(newUser)
         setMatches([])
+        setFriends([])
+        setFriendRequests([])
       } else {
         if (!email || !password) {
           setAuthError("Email and password are required")
@@ -158,6 +193,12 @@ export default function TennisMatchOrganizer() {
         if (userData?.matches) {
           setMatches(userData.matches)
         }
+        if (userData?.friends) {
+          setFriends(userData.friends)
+        }
+        if (userData?.friendRequests) {
+          setFriendRequests(userData.friendRequests)
+        }
       }
     } catch (error) {
       setAuthError("An error occurred. Please try again.")
@@ -171,6 +212,8 @@ export default function TennisMatchOrganizer() {
     localStorage.removeItem(CURRENT_USER_KEY)
     setCurrentUser(null)
     setMatches([])
+    setFriends([])
+    setFriendRequests([])
     setAuthError("")
   }
 
@@ -200,6 +243,109 @@ export default function TennisMatchOrganizer() {
 
     setShowCreateMatch(false)
     setMatchForm({ opponent: "", date: "", time: "", location: "", notes: "" })
+  }
+
+  const handleSendFriendRequest = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!friendForm.email || !currentUser) return
+
+    const targetUser = findUserByEmail(friendForm.email)
+    if (!targetUser) {
+      alert("No user found with this email address. They need to create an account first!")
+      return
+    }
+
+    if (targetUser.id === currentUser.id) {
+      alert("You cannot send a friend request to yourself!")
+      return
+    }
+
+    if (friends.some((f) => f.email === friendForm.email)) {
+      alert("You are already friends with this user!")
+      return
+    }
+
+    if (friendRequests.some((r) => r.toEmail === friendForm.email && r.status === "pending")) {
+      alert("Friend request already sent to this user!")
+      return
+    }
+
+    const newRequest: FriendRequest = {
+      id: Date.now().toString(),
+      fromUserId: currentUser.id,
+      fromUserName: currentUser.name,
+      fromUserEmail: currentUser.email,
+      toEmail: friendForm.email,
+      message:
+        friendForm.message || `Hi! I'd like to connect with you on Set Point to organize tennis matches together.`,
+      status: "pending",
+      sentDate: new Date().toLocaleDateString(),
+    }
+
+    const updatedRequests = [...friendRequests, newRequest]
+    setFriendRequests(updatedRequests)
+
+    const targetUserData = getUserData(targetUser.id) || {}
+    const targetRequests = targetUserData.friendRequests || []
+    targetRequests.push(newRequest)
+    saveUserData(targetUser.id, { ...targetUserData, friendRequests: targetRequests })
+
+    const userData = getUserData(currentUser.id) || {}
+    saveUserData(currentUser.id, { ...userData, friendRequests: updatedRequests })
+
+    setFriendForm({ email: "", message: "" })
+    setShowAddFriend(false)
+    alert("Friend request sent successfully!")
+  }
+
+  const handleAcceptFriendRequest = (request: FriendRequest) => {
+    if (!currentUser) return
+
+    const newFriend: Friend = {
+      id: request.fromUserId,
+      name: request.fromUserName,
+      email: request.fromUserEmail,
+      skillLevel: "intermediate",
+      addedDate: new Date().toLocaleDateString(),
+      matchesPlayed: 0,
+    }
+
+    const updatedFriends = [...friends, newFriend]
+    setFriends(updatedFriends)
+
+    const senderData = getUserData(request.fromUserId) || {}
+    const senderFriends = senderData.friends || []
+    senderFriends.push({
+      id: currentUser.id,
+      name: currentUser.name,
+      email: currentUser.email,
+      skillLevel: currentUser.skillLevel || "intermediate",
+      addedDate: new Date().toLocaleDateString(),
+      matchesPlayed: 0,
+    })
+    saveUserData(request.fromUserId, { ...senderData, friends: senderFriends })
+
+    const updatedRequests = friendRequests.map((r) => (r.id === request.id ? { ...r, status: "accepted" as const } : r))
+    setFriendRequests(updatedRequests)
+
+    const userData = getUserData(currentUser.id) || {}
+    saveUserData(currentUser.id, {
+      ...userData,
+      friends: updatedFriends,
+      friendRequests: updatedRequests,
+    })
+
+    alert("Friend request accepted!")
+  }
+
+  const handleDeclineFriendRequest = (request: FriendRequest) => {
+    const updatedRequests = friendRequests.map((r) => (r.id === request.id ? { ...r, status: "declined" as const } : r))
+    setFriendRequests(updatedRequests)
+
+    if (currentUser) {
+      const userData = getUserData(currentUser.id) || {}
+      saveUserData(currentUser.id, { ...userData, friendRequests: updatedRequests })
+    }
   }
 
   if (!currentUser) {
@@ -492,11 +638,124 @@ export default function TennisMatchOrganizer() {
 
         {activeView === "friends" && (
           <div className="bg-white rounded-lg p-6 shadow-sm">
-            <h2 className="text-xl font-semibold mb-6">Tennis Friends</h2>
-            <div className="text-center py-12">
-              <p className="text-gray-500 mb-4">Friends feature coming soon!</p>
-              <p className="text-sm text-gray-400">Connect with other tennis players and organize matches together.</p>
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-xl font-semibold">Tennis Friends</h2>
+              <button
+                onClick={() => setShowAddFriend(true)}
+                className="bg-cyan-600 text-white py-2 px-4 rounded-md hover:bg-cyan-700"
+              >
+                ➕ Add Friend
+              </button>
             </div>
+
+            <div className="flex mb-6 bg-gray-100 rounded-lg p-1">
+              <button
+                onClick={() => setFriendsView("list")}
+                className={`flex-1 py-2 px-4 text-center rounded-md ${
+                  friendsView === "list" ? "bg-white shadow-sm" : "text-gray-600"
+                }`}
+              >
+                Friends ({friends.length})
+              </button>
+              <button
+                onClick={() => setFriendsView("requests")}
+                className={`flex-1 py-2 px-4 text-center rounded-md ${
+                  friendsView === "requests" ? "bg-white shadow-sm" : "text-gray-600"
+                }`}
+              >
+                Requests ({friendRequests.filter((r) => r.status === "pending").length})
+              </button>
+            </div>
+
+            {friendsView === "list" && (
+              <div>
+                {friends.length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500 mb-4">No friends added yet</p>
+                    <button
+                      onClick={() => setShowAddFriend(true)}
+                      className="bg-cyan-600 text-white py-2 px-4 rounded-md hover:bg-cyan-700"
+                    >
+                      Add Your First Friend
+                    </button>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {friends.map((friend) => (
+                      <div key={friend.id} className="border rounded-lg p-4">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 bg-cyan-600 rounded-full flex items-center justify-center text-white font-medium">
+                              {friend.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <h3 className="font-medium">{friend.name}</h3>
+                              <p className="text-sm text-gray-600">{friend.email}</p>
+                              <p className="text-xs text-gray-500">
+                                Skill: {friend.skillLevel} • Added {friend.addedDate}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <button
+                              onClick={() => {
+                                setMatchForm((prev) => ({ ...prev, opponent: friend.name }))
+                                setShowCreateMatch(true)
+                              }}
+                              className="bg-cyan-600 text-white py-1 px-3 rounded text-sm hover:bg-cyan-700"
+                            >
+                              Challenge
+                            </button>
+                            <p className="text-xs text-gray-500 mt-1">{friend.matchesPlayed} matches played</p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+
+            {friendsView === "requests" && (
+              <div>
+                {friendRequests.filter((r) => r.status === "pending").length === 0 ? (
+                  <div className="text-center py-12">
+                    <p className="text-gray-500">No pending friend requests</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {friendRequests
+                      .filter((r) => r.status === "pending")
+                      .map((request) => (
+                        <div key={request.id} className="border rounded-lg p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-medium">{request.fromUserName}</h3>
+                              <p className="text-sm text-gray-600">{request.fromUserEmail}</p>
+                              <p className="text-sm text-gray-700 mt-2">{request.message}</p>
+                              <p className="text-xs text-gray-500 mt-1">Sent {request.sentDate}</p>
+                            </div>
+                            <div className="flex space-x-2">
+                              <button
+                                onClick={() => handleAcceptFriendRequest(request)}
+                                className="bg-green-600 text-white py-1 px-3 rounded text-sm hover:bg-green-700"
+                              >
+                                Accept
+                              </button>
+                              <button
+                                onClick={() => handleDeclineFriendRequest(request)}
+                                className="bg-gray-600 text-white py-1 px-3 rounded text-sm hover:bg-gray-700"
+                              >
+                                Decline
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         )}
 
@@ -510,7 +769,7 @@ export default function TennisMatchOrganizer() {
                 </div>
                 <div>
                   <h3 className="text-lg font-medium">{currentUser.name}</h3>
-                  <p className="text-gray-600">{currentUser.email}</p>
+                  <p className="text-sm text-gray-600">{currentUser.email}</p>
                   <p className="text-sm text-gray-500">Joined {currentUser.joinDate}</p>
                 </div>
               </div>
@@ -543,6 +802,49 @@ export default function TennisMatchOrganizer() {
           </div>
         )}
       </main>
+
+      {showAddFriend && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold mb-4">Add Tennis Friend</h3>
+            <form onSubmit={handleSendFriendRequest} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Friend's Email</label>
+                <input
+                  type="email"
+                  placeholder="Enter their email address"
+                  value={friendForm.email}
+                  onChange={(e) => setFriendForm((prev) => ({ ...prev, email: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Personal Message (Optional)</label>
+                <textarea
+                  placeholder="Hi! I'd like to connect with you on Set Point..."
+                  value={friendForm.message}
+                  onChange={(e) => setFriendForm((prev) => ({ ...prev, message: e.target.value }))}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-cyan-500"
+                  rows={3}
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <button
+                  type="button"
+                  onClick={() => setShowAddFriend(false)}
+                  className="px-4 py-2 text-gray-600 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="px-4 py-2 bg-cyan-600 text-white rounded-md hover:bg-cyan-700">
+                  Send Request
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {showCreateMatch && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
