@@ -67,8 +67,20 @@ interface Notification {
   actionUrl?: string
 }
 
+interface InvitationData {
+  id: string
+  fromUserId: string
+  fromUserName: string
+  fromUserEmail: string
+  toEmail: string
+  message: string
+  createdAt: string
+  status: "pending" | "accepted" | "expired"
+}
+
 const USERS_STORAGE_KEY = "setpoint_users"
 const CURRENT_USER_KEY = "setpoint_current_user"
+const INVITATIONS_STORAGE_KEY = "setpoint_invitations"
 
 const getUserData = (userId: string) => {
   if (typeof window === "undefined") return null
@@ -104,6 +116,26 @@ const saveUser = (user: any) => {
 const findUserByEmail = (email: string): any | null => {
   const users = getAllUsers()
   return users.find((u) => u.email.toLowerCase() === email.toLowerCase()) || null
+}
+
+const getAllInvitations = (): InvitationData[] => {
+  if (typeof window === "undefined") return []
+  const invitations = localStorage.getItem(INVITATIONS_STORAGE_KEY)
+  return invitations ? JSON.parse(invitations) : []
+}
+
+const saveInvitation = (invitation: InvitationData) => {
+  if (typeof window === "undefined") return
+  const invitations = getAllInvitations()
+  invitations.push(invitation)
+  localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(invitations))
+}
+
+const updateInvitationStatus = (invitationId: string, status: "accepted" | "expired") => {
+  if (typeof window === "undefined") return
+  const invitations = getAllInvitations()
+  const updatedInvitations = invitations.map((inv) => (inv.id === invitationId ? { ...inv, status } : inv))
+  localStorage.setItem(INVITATIONS_STORAGE_KEY, JSON.stringify(updatedInvitations))
 }
 
 interface AppUser {
@@ -158,6 +190,8 @@ export default function TennisMatchOrganizer() {
     maxParticipants: "8",
   })
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const [showInviteAcceptance, setShowInviteAcceptance] = useState(false)
+  const [currentInvitation, setCurrentInvitation] = useState<InvitationData | null>(null)
 
   useEffect(() => {
     if (currentUser) {
@@ -236,6 +270,23 @@ export default function TennisMatchOrganizer() {
       }
     }
   }, [])
+
+  useEffect(() => {
+    if (typeof window === "undefined") return
+
+    const urlParams = new URLSearchParams(window.location.search)
+    const invitationId = urlParams.get("invitation")
+
+    if (invitationId && !currentUser) {
+      const invitations = getAllInvitations()
+      const invitation = invitations.find((inv) => inv.id === invitationId && inv.status === "pending")
+
+      if (invitation) {
+        setCurrentInvitation(invitation)
+        setShowInviteAcceptance(true)
+      }
+    }
+  }, [currentUser])
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -402,14 +453,32 @@ export default function TennisMatchOrganizer() {
 
   const handleSendEmailInvite = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!emailInviteForm.email) return
+    if (!emailInviteForm.email || !currentUser) return
 
-    // Simulate email sending
+    const invitationId = `inv_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const invitation: InvitationData = {
+      id: invitationId,
+      fromUserId: currentUser.id,
+      fromUserName: currentUser.name,
+      fromUserEmail: currentUser.email,
+      toEmail: emailInviteForm.email,
+      message: emailInviteForm.message || `${currentUser.name} wants to connect with you on Set Point!`,
+      createdAt: new Date().toISOString(),
+      status: "pending",
+    }
+
+    saveInvitation(invitation)
+
+    const invitationLink = `${window.location.origin}?invitation=${invitationId}`
+
+    console.log(`[v0] Email invitation sent to ${emailInviteForm.email}`)
+    console.log(`[v0] Invitation link: ${invitationLink}`)
+
     const newNotification: Notification = {
       id: Date.now().toString(),
       type: "friend_request",
       title: "Friend Invitation Sent",
-      message: `Invitation sent to ${emailInviteForm.email}`,
+      message: `Invitation sent to ${emailInviteForm.email}. They can accept at: ${invitationLink}`,
       timestamp: new Date().toISOString(),
       read: false,
     }
@@ -417,6 +486,31 @@ export default function TennisMatchOrganizer() {
     setNotifications((prev) => [newNotification, ...prev])
     setShowEmailInvite(false)
     setEmailInviteForm({ email: "", message: "" })
+
+    alert(`Invitation sent! Share this link with your friend: ${invitationLink}`)
+  }
+
+  const handleAcceptInvitation = () => {
+    if (!currentInvitation) return
+
+    updateInvitationStatus(currentInvitation.id, "accepted")
+
+    setShowInviteAcceptance(false)
+    setIsSignUp(true)
+    setCurrentInvitation(null)
+
+    window.history.replaceState({}, document.title, window.location.pathname)
+  }
+
+  const handleDeclineInvitation = () => {
+    if (!currentInvitation) return
+
+    updateInvitationStatus(currentInvitation.id, "expired")
+
+    setShowInviteAcceptance(false)
+    setCurrentInvitation(null)
+
+    window.history.replaceState({}, document.title, window.location.pathname)
   }
 
   const handleCreateTournament = (e: React.FormEvent) => {
@@ -549,6 +643,31 @@ export default function TennisMatchOrganizer() {
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-cyan-50 to-teal-50 flex items-center justify-center p-4">
+        {showInviteAcceptance && currentInvitation && (
+          <Card className="w-full max-w-md mb-4">
+            <CardHeader className="text-center">
+              <CardTitle className="text-xl font-bold text-cyan-900">🎾 Tennis Invitation</CardTitle>
+              <CardDescription>You've been invited to join Set Point!</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="text-center">
+                <p className="font-medium">{currentInvitation.fromUserName}</p>
+                <p className="text-sm text-muted-foreground">{currentInvitation.fromUserEmail}</p>
+                <p className="text-sm mt-2">{currentInvitation.message}</p>
+              </div>
+
+              <div className="flex space-x-2">
+                <Button onClick={handleAcceptInvitation} className="flex-1">
+                  Accept & Join
+                </Button>
+                <Button variant="outline" onClick={handleDeclineInvitation} className="flex-1 bg-transparent">
+                  Decline
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card className="w-full max-w-md">
           <CardHeader className="text-center">
             <div className="mx-auto mb-4">
@@ -572,7 +691,13 @@ export default function TennisMatchOrganizer() {
                 <form onSubmit={handleAuth} className="space-y-4">
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="Enter your email" required />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      defaultValue={currentInvitation?.toEmail || ""}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
@@ -597,7 +722,13 @@ export default function TennisMatchOrganizer() {
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" placeholder="Enter your email" required />
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="Enter your email"
+                      defaultValue={currentInvitation?.toEmail || ""}
+                      required
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="password">Password</Label>
@@ -697,9 +828,38 @@ export default function TennisMatchOrganizer() {
                 <CardTitle>👥 Social Hub</CardTitle>
                 <CardDescription>Connect with friends and share achievements</CardDescription>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4">Social features coming soon!</p>
-                <Button>Invite Friends</Button>
+              <CardContent className="space-y-4">
+                <div className="flex space-x-2">
+                  <Button onClick={() => setShowEmailInvite(true)} className="flex-1">
+                    📧 Invite Friend by Email
+                  </Button>
+                  <Button variant="outline" onClick={() => setShowFriends(true)} className="flex-1">
+                    👥 Manage Friends
+                  </Button>
+                </div>
+
+                <div className="border rounded-lg p-4">
+                  <h3 className="font-medium mb-2">Recent Invitations</h3>
+                  {getAllInvitations()
+                    .filter((inv) => inv.fromUserId === currentUser?.id)
+                    .slice(0, 3)
+                    .map((invitation) => (
+                      <div
+                        key={invitation.id}
+                        className="flex items-center justify-between py-2 border-b last:border-b-0"
+                      >
+                        <div>
+                          <p className="text-sm font-medium">{invitation.toEmail}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(invitation.createdAt).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge variant={invitation.status === "accepted" ? "default" : "secondary"}>
+                          {invitation.status}
+                        </Badge>
+                      </div>
+                    ))}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
@@ -719,7 +879,6 @@ export default function TennisMatchOrganizer() {
         </Tabs>
       </main>
 
-      {/* Create Match Dialog */}
       {showCreateMatch && (
         <Dialog open={showCreateMatch} onOpenChange={setShowCreateMatch}>
           <DialogContent>
@@ -755,6 +914,45 @@ export default function TennisMatchOrganizer() {
                   Cancel
                 </Button>
                 <Button type="submit">Schedule Match</Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {showEmailInvite && (
+        <Dialog open={showEmailInvite} onOpenChange={setShowEmailInvite}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>📧 Invite Friend to Set Point</DialogTitle>
+              <DialogDescription>Send a tennis invitation to your friend</DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSendEmailInvite} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="inviteEmail">Friend's Email</Label>
+                <Input
+                  id="inviteEmail"
+                  type="email"
+                  placeholder="Enter your friend's email"
+                  value={emailInviteForm.email}
+                  onChange={(e) => setEmailInviteForm((prev) => ({ ...prev, email: e.target.value }))}
+                  required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="inviteMessage">Personal Message (Optional)</Label>
+                <Textarea
+                  id="inviteMessage"
+                  placeholder="Add a personal message to your invitation..."
+                  value={emailInviteForm.message}
+                  onChange={(e) => setEmailInviteForm((prev) => ({ ...prev, message: e.target.value }))}
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button type="button" variant="outline" onClick={() => setShowEmailInvite(false)}>
+                  Cancel
+                </Button>
+                <Button type="submit">Send Invitation</Button>
               </div>
             </form>
           </DialogContent>
