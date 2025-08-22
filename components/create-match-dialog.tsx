@@ -38,12 +38,16 @@ interface CreateMatchDialogProps {
 const friends = ["Sarah Johnson", "Mike Chen", "Alex Rodriguez", "Emma Wilson", "David Kim", "Lisa Thompson"]
 
 const locations = [
-  "Central Tennis Club",
-  "Riverside Courts",
-  "City Sports Complex",
-  "Westside Tennis Center",
-  "Park Avenue Courts",
-  "Downtown Athletic Club",
+  "Centro de Tennis Honda",
+  "Riviera Tennis Courts",
+  "Club Deportivo del Oeste",
+  "Tennis Club de Puerto Rico",
+  "Palmas Athletic Club",
+  "Club Náutico de San Juan",
+  "Dorado Beach Tennis Club",
+  "El San Juan Tennis Club",
+  "Caribe Hilton Tennis Courts",
+  "Universidad del Sagrado Corazón Tennis Courts",
 ]
 
 export function CreateMatchDialog({ open, onOpenChange, onCreateMatch }: CreateMatchDialogProps) {
