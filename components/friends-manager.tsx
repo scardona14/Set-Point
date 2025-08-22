@@ -16,12 +16,14 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { UserPlus, UserMinus, Mail, Check, X, Search, Trophy, Calendar, Users } from "lucide-react"
+import { UserPlus, UserMinus, Mail, Check, X, Search, Trophy, Calendar, Users, Phone } from "lucide-react"
+import { SMSService } from "@/lib/sms-service"
 
 interface Friend {
   id: string
   name: string
-  email: string
+  email?: string
+  phone?: string
   avatar?: string
   status: "active" | "pending-sent" | "pending-received"
   matchesPlayed: number
@@ -56,7 +58,8 @@ const saveUserFriends = (userId: string, friends: Friend[]) => {
 export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsManagerProps) {
   const [friends, setFriends] = useState<Friend[]>([])
   const [searchTerm, setSearchTerm] = useState("")
-  const [newFriendEmail, setNewFriendEmail] = useState("")
+  const [newFriendContact, setNewFriendContact] = useState("")
+  const [contactMethod, setContactMethod] = useState<"email" | "phone">("email")
   const [activeTab, setActiveTab] = useState("friends")
 
   useEffect(() => {
@@ -79,23 +82,64 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
   const filteredFriends = activeFriends.filter(
     (friend) =>
       friend.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      friend.email.toLowerCase().includes(searchTerm.toLowerCase()),
+      (friend.email && friend.email.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (friend.phone && friend.phone.includes(searchTerm)),
   )
 
-  const handleAddFriend = () => {
-    if (!newFriendEmail.trim()) return
+  const handleAddFriend = async () => {
+    if (!newFriendContact.trim()) return
+
+    if (contactMethod === "email" && !newFriendContact.includes("@")) {
+      alert("Please enter a valid email address")
+      return
+    }
+
+    if (contactMethod === "phone" && !/^\+?[\d\s\-()]+$/.test(newFriendContact)) {
+      alert("Please enter a valid phone number")
+      return
+    }
+
+    const sendingButton = document.querySelector("[data-sending]") as HTMLButtonElement
+    if (sendingButton) {
+      sendingButton.disabled = true
+      sendingButton.textContent = contactMethod === "phone" ? "Sending SMS..." : "Sending..."
+    }
 
     const newFriend: Friend = {
       id: Date.now().toString(),
-      name: newFriendEmail.split("@")[0], // Mock name from email
-      email: newFriendEmail,
+      name: contactMethod === "email" ? newFriendContact.split("@")[0] : `Contact ${newFriendContact.slice(-4)}`,
+      ...(contactMethod === "email" ? { email: newFriendContact } : { phone: newFriendContact }),
       status: "pending-sent",
       matchesPlayed: 0,
       skillLevel: "Intermediate",
     }
 
+    if (contactMethod === "phone") {
+      try {
+        const currentUser = JSON.parse(localStorage.getItem(`setpoint_user_${currentUserId}`) || "{}")
+        const senderName = currentUser.name || "A tennis player"
+
+        const success = await SMSService.sendInvitation(newFriendContact, senderName)
+
+        if (success) {
+          alert(`SMS invitation sent to ${newFriendContact}! They'll receive a message about Set Point.`)
+        } else {
+          alert("Failed to send SMS invitation. Friend request still sent.")
+        }
+      } catch (error) {
+        console.error("[v0] SMS sending error:", error)
+        alert("SMS service unavailable. Friend request sent without SMS notification.")
+      }
+    }
+
     setFriends((prev) => [...prev, newFriend])
-    setNewFriendEmail("")
+    setNewFriendContact("")
+
+    if (sendingButton) {
+      sendingButton.disabled = false
+      sendingButton.innerHTML =
+        '<svg class="h-4 w-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path></svg>Send Request'
+    }
   }
 
   const handleAcceptFriend = (friendId: string) => {
@@ -165,7 +209,6 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
           </TabsList>
 
           <TabsContent value="friends" className="space-y-4">
-            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
@@ -176,7 +219,6 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
               />
             </div>
 
-            {/* Friends List */}
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
               {filteredFriends.map((friend) => (
                 <Card key={friend.id} className="p-4">
@@ -192,7 +234,8 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
                       </Avatar>
                       <div>
                         <p className="font-semibold">{friend.name}</p>
-                        <p className="text-sm text-muted-foreground">{friend.email}</p>
+                        {friend.email && <p className="text-sm text-muted-foreground">{friend.email}</p>}
+                        {friend.phone && <p className="text-sm text-muted-foreground">{friend.phone}</p>}
                         <div className="flex items-center gap-2 mt-1">
                           <Badge variant="outline" className={getSkillLevelColor(friend.skillLevel)}>
                             {friend.skillLevel}
@@ -231,7 +274,6 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
 
           <TabsContent value="requests" className="space-y-4">
             <div className="space-y-3 max-h-[400px] overflow-y-auto">
-              {/* Received Requests */}
               {pendingReceived.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-3">Friend Requests</h4>
@@ -249,7 +291,8 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
                           </Avatar>
                           <div>
                             <p className="font-semibold">{friend.name}</p>
-                            <p className="text-sm text-muted-foreground">{friend.email}</p>
+                            {friend.email && <p className="text-sm text-muted-foreground">{friend.email}</p>}
+                            {friend.phone && <p className="text-sm text-muted-foreground">{friend.phone}</p>}
                             <Badge variant="outline" className={getSkillLevelColor(friend.skillLevel)}>
                               {friend.skillLevel}
                             </Badge>
@@ -278,7 +321,6 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
                 </div>
               )}
 
-              {/* Sent Requests */}
               {pendingSent.length > 0 && (
                 <div>
                   <h4 className="font-semibold mb-3">Sent Requests</h4>
@@ -296,7 +338,8 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
                           </Avatar>
                           <div>
                             <p className="font-semibold">{friend.name}</p>
-                            <p className="text-sm text-muted-foreground">{friend.email}</p>
+                            {friend.email && <p className="text-sm text-muted-foreground">{friend.email}</p>}
+                            {friend.phone && <p className="text-sm text-muted-foreground">{friend.phone}</p>}
                             <Badge variant="outline">Pending</Badge>
                           </div>
                         </div>
@@ -322,18 +365,41 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
 
           <TabsContent value="add" className="space-y-4">
             <div className="space-y-4">
+              <div className="flex gap-2 mb-4">
+                <Button
+                  variant={contactMethod === "email" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setContactMethod("email")}
+                  className="flex items-center gap-2"
+                >
+                  <Mail className="h-4 w-4" />
+                  Email
+                </Button>
+                <Button
+                  variant={contactMethod === "phone" ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setContactMethod("phone")}
+                  className="flex items-center gap-2"
+                >
+                  <Phone className="h-4 w-4" />
+                  Phone
+                </Button>
+              </div>
+
               <div>
-                <Label htmlFor="friend-email">Friend's Email Address</Label>
+                <Label htmlFor="friend-contact">
+                  {contactMethod === "email" ? "Friend's Email Address" : "Friend's Phone Number"}
+                </Label>
                 <div className="flex gap-2 mt-2">
                   <Input
-                    id="friend-email"
-                    type="email"
-                    placeholder="friend@example.com"
-                    value={newFriendEmail}
-                    onChange={(e) => setNewFriendEmail(e.target.value)}
+                    id="friend-contact"
+                    type={contactMethod === "email" ? "email" : "tel"}
+                    placeholder={contactMethod === "email" ? "friend@example.com" : "+1 (555) 123-4567"}
+                    value={newFriendContact}
+                    onChange={(e) => setNewFriendContact(e.target.value)}
                     onKeyPress={(e) => e.key === "Enter" && handleAddFriend()}
                   />
-                  <Button onClick={handleAddFriend} disabled={!newFriendEmail.trim()}>
+                  <Button onClick={handleAddFriend} disabled={!newFriendContact.trim()} data-sending>
                     <UserPlus className="h-4 w-4 mr-2" />
                     Send Request
                   </Button>
@@ -343,8 +409,10 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
               <div className="bg-muted/50 p-4 rounded-lg">
                 <h4 className="font-semibold mb-2">How to add friends:</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
-                  <li>• Enter your friend's email address</li>
-                  <li>• They'll receive a friend request notification</li>
+                  <li>• Enter your friend's {contactMethod === "email" ? "email address" : "phone number"}</li>
+                  <li>
+                    • They'll receive a {contactMethod === "phone" ? "text message" : "friend request notification"}
+                  </li>
                   <li>• Once accepted, you can schedule matches together</li>
                   <li>• Build your tennis network and track your games</li>
                 </ul>
