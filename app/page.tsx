@@ -468,93 +468,150 @@ export default function TennisMatchOrganizer() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Matches List */}
           <div className="lg:col-span-2">
-            <div className="flex items-center justify-between mb-6">
-              <h2 className="font-serif text-2xl font-bold">Your Matches</h2>
-              <div className="flex gap-2">
-                <Button variant="outline" onClick={() => setShowMatchHistory(true)}>
-                  <Trophy className="h-4 w-4 mr-2" />
-                  History
-                </Button>
-                <Button onClick={() => setShowCreateMatch(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Match
-                </Button>
-              </div>
-            </div>
+            <Tabs defaultValue="matches" className="w-full">
+              <TabsList className="grid w-full grid-cols-3">
+                <TabsTrigger value="matches">Matches</TabsTrigger>
+                <TabsTrigger value="tournaments">Tournaments</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              </TabsList>
 
-            {matches.length === 0 && !showMatchHistory ? (
-              <Card>
-                <CardContent className="p-8 text-center">
-                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
-                    <Image
-                      src="/tennis-ball-realistic.png"
-                      alt="Tennis Ball"
-                      width={64}
-                      height={64}
-                      className="rounded-full"
-                    />
+              <TabsContent value="matches" className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-serif text-2xl font-bold">Your Matches</h2>
+                  <div className="flex gap-2">
+                    <Button variant="outline" onClick={() => setShowMatchHistory(true)}>
+                      <Trophy className="h-4 w-4 mr-2" />
+                      History
+                    </Button>
+                    <Button onClick={() => setShowCreateMatch(true)}>
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Match
+                    </Button>
                   </div>
-                  <h3 className="font-serif text-xl font-semibold mb-2">Welcome to Set Point!</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Ready to organize your first tennis match? Click "New Match" to get started and begin tracking your
-                    tennis journey.
-                  </p>
-                  <Button onClick={() => setShowCreateMatch(true)}>
-                    <Plus className="h-4 w-4 mr-2" />
-                    Schedule Your First Match
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : showMatchHistory ? (
-              // ... existing match history code ...
-              <div className="space-y-4">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="font-serif text-xl font-semibold">Match History</h3>
-                  <Button variant="ghost" onClick={() => setShowMatchHistory(false)}>
-                    Back to Current
-                  </Button>
                 </div>
 
-                <Card className="mb-6">
-                  <CardHeader>
-                    <CardTitle className="font-serif">Your Performance</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
-                      <div>
-                        <p className="text-2xl font-bold text-green-600">{matchStats.wins}</p>
-                        <p className="text-sm text-muted-foreground">Wins</p>
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold text-red-600">{matchStats.losses}</p>
-                        <p className="text-sm text-muted-foreground">Losses</p>
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{matchStats.totalMatches}</p>
-                        <p className="text-sm text-muted-foreground">Total Matches</p>
-                      </div>
-                      <div>
-                        <p className="text-2xl font-bold">{matchStats.winRate}%</p>
-                        <p className="text-sm text-muted-foreground">Win Rate</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-
-                {matches.filter((m) => m.status === "completed").length === 0 ? (
+                {matches.length === 0 && !showMatchHistory ? (
                   <Card>
                     <CardContent className="p-8 text-center">
-                      <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-                      <p className="text-muted-foreground">
-                        No completed matches yet. Start playing to build your history!
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
+                        <Image
+                          src="/tennis-ball-realistic.png"
+                          alt="Tennis Ball"
+                          width={64}
+                          height={64}
+                          className="rounded-full"
+                        />
+                      </div>
+                      <h3 className="font-serif text-xl font-semibold mb-2">Welcome to Set Point!</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Ready to organize your first tennis match? Click "New Match" to get started and begin tracking
+                        your tennis journey.
                       </p>
+                      <Button onClick={() => setShowCreateMatch(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Schedule Your First Match
+                      </Button>
                     </CardContent>
                   </Card>
+                ) : showMatchHistory ? (
+                  // ... existing match history code ...
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="font-serif text-xl font-semibold">Match History</h3>
+                      <Button variant="ghost" onClick={() => setShowMatchHistory(false)}>
+                        Back to Current
+                      </Button>
+                    </div>
+
+                    <Card className="mb-6">
+                      <CardHeader>
+                        <CardTitle className="font-serif">Your Performance</CardTitle>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                          <div>
+                            <p className="text-2xl font-bold text-green-600">{matchStats.wins}</p>
+                            <p className="text-sm text-muted-foreground">Wins</p>
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold text-red-600">{matchStats.losses}</p>
+                            <p className="text-sm text-muted-foreground">Losses</p>
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold">{matchStats.totalMatches}</p>
+                            <p className="text-sm text-muted-foreground">Total Matches</p>
+                          </div>
+                          <div>
+                            <p className="text-2xl font-bold">{matchStats.winRate}%</p>
+                            <p className="text-sm text-muted-foreground">Win Rate</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {matches.filter((m) => m.status === "completed").length === 0 ? (
+                      <Card>
+                        <CardContent className="p-8 text-center">
+                          <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <p className="text-muted-foreground">
+                            No completed matches yet. Start playing to build your history!
+                          </p>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      matches
+                        .filter((m) => m.status === "completed")
+                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                        .map((match) => (
+                          <Card key={match.id} className="hover:shadow-md transition-shadow">
+                            <CardContent className="p-6">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                  <Avatar className="h-12 w-12">
+                                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                      {match.opponent
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="font-semibold text-lg">{match.opponent}</p>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                                      <div className="flex items-center gap-1">
+                                        <CalendarDays className="h-3 w-3" />
+                                        {formatDate(match.date)}
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <MapPin className="h-3 w-3" />
+                                        {match.location}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right flex flex-col items-end gap-2">
+                                  <Badge variant="secondary" className="capitalize">
+                                    Completed
+                                  </Badge>
+                                  {match.score && (
+                                    <p className="text-lg font-mono font-semibold text-primary">{match.score}</p>
+                                  )}
+                                </div>
+                              </div>
+                              {match.notes && (
+                                <div className="mt-4 pt-4 border-t">
+                                  <p className="text-sm text-muted-foreground">{match.notes}</p>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))
+                    )}
+                  </div>
                 ) : (
-                  matches
-                    .filter((m) => m.status === "completed")
-                    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                    .map((match) => (
+                  // ... existing matches display code ...
+                  <div className="space-y-4">
+                    {matches.map((match) => (
                       <Card key={match.id} className="hover:shadow-md transition-shadow">
                         <CardContent className="p-6">
                           <div className="flex items-center justify-between">
@@ -575,18 +632,35 @@ export default function TennisMatchOrganizer() {
                                     {formatDate(match.date)}
                                   </div>
                                   <div className="flex items-center gap-1">
-                                    <MapPin className="h-3 w-3" />
-                                    {match.location}
+                                    <Clock className="h-3 w-3" />
+                                    {match.time}
                                   </div>
+                                </div>
+                                <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                                  <MapPin className="h-3 w-3" />
+                                  {match.location}
                                 </div>
                               </div>
                             </div>
                             <div className="text-right flex flex-col items-end gap-2">
-                              <Badge variant="secondary" className="capitalize">
-                                Completed
+                              <Badge
+                                variant={
+                                  match.status === "completed"
+                                    ? "secondary"
+                                    : match.status === "in-progress"
+                                      ? "default"
+                                      : "outline"
+                                }
+                                className="capitalize"
+                              >
+                                {match.status.replace("-", " ")}
                               </Badge>
-                              {match.score && (
-                                <p className="text-lg font-mono font-semibold text-primary">{match.score}</p>
+                              {match.score && <p className="text-sm font-mono font-semibold">{match.score}</p>}
+                              {(match.status === "upcoming" || match.status === "in-progress") && (
+                                <Button size="sm" variant="outline" onClick={() => handleStartScoreTracking(match)}>
+                                  <Play className="h-3 w-3 mr-1" />
+                                  {match.status === "upcoming" ? "Start" : "Continue"}
+                                </Button>
                               )}
                             </div>
                           </div>
@@ -597,75 +671,333 @@ export default function TennisMatchOrganizer() {
                           )}
                         </CardContent>
                       </Card>
-                    ))
+                    ))}
+                  </div>
                 )}
-              </div>
-            ) : (
-              // ... existing matches display code ...
-              <div className="space-y-4">
-                {matches.map((match) => (
-                  <Card key={match.id} className="hover:shadow-md transition-shadow">
-                    <CardContent className="p-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-4">
-                          <Avatar className="h-12 w-12">
-                            <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                              {match.opponent
-                                .split(" ")
-                                .map((n) => n[0])
-                                .join("")}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-semibold text-lg">{match.opponent}</p>
-                            <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                              <div className="flex items-center gap-1">
-                                <CalendarDays className="h-3 w-3" />
-                                {formatDate(match.date)}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {match.time}
-                              </div>
-                            </div>
-                            <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                              <MapPin className="h-3 w-3" />
-                              {match.location}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="text-right flex flex-col items-end gap-2">
-                          <Badge
-                            variant={
-                              match.status === "completed"
-                                ? "secondary"
-                                : match.status === "in-progress"
-                                  ? "default"
-                                  : "outline"
-                            }
-                            className="capitalize"
-                          >
-                            {match.status.replace("-", " ")}
-                          </Badge>
-                          {match.score && <p className="text-sm font-mono font-semibold">{match.score}</p>}
-                          {(match.status === "upcoming" || match.status === "in-progress") && (
-                            <Button size="sm" variant="outline" onClick={() => handleStartScoreTracking(match)}>
-                              <Play className="h-3 w-3 mr-1" />
-                              {match.status === "upcoming" ? "Start" : "Continue"}
-                            </Button>
-                          )}
-                        </div>
+              </TabsContent>
+
+              <TabsContent value="tournaments" className="space-y-6">
+                <div className="text-center py-12">
+                  <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
+                  <h3 className="font-serif text-xl font-semibold mb-2">Tournament System</h3>
+                  <p className="text-muted-foreground mb-4">
+                    Create and manage tournaments with your tennis friends. Coming soon!
+                  </p>
+                </div>
+              </TabsContent>
+
+              {/* Analytics Tab */}
+              <TabsContent value="analytics" className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <h2 className="font-serif text-2xl font-bold">Performance Analytics</h2>
+                </div>
+
+                {matches.filter((m) => m.status === "completed").length === 0 ? (
+                  <Card>
+                    <CardContent className="p-8 text-center">
+                      <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                        <Trophy className="h-8 w-8 text-primary" />
                       </div>
-                      {match.notes && (
-                        <div className="mt-4 pt-4 border-t">
-                          <p className="text-sm text-muted-foreground">{match.notes}</p>
-                        </div>
-                      )}
+                      <h3 className="font-serif text-xl font-semibold mb-2">No Analytics Yet</h3>
+                      <p className="text-muted-foreground mb-4">
+                        Complete some matches to see your performance analytics and insights.
+                      </p>
+                      <Button onClick={() => setShowCreateMatch(true)}>
+                        <Plus className="h-4 w-4 mr-2" />
+                        Schedule Your First Match
+                      </Button>
                     </CardContent>
                   </Card>
-                ))}
-              </div>
-            )}
+                ) : (
+                  <div className="space-y-6">
+                    {/* Performance Overview */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="font-serif">Performance Overview</CardTitle>
+                        <CardDescription>Your tennis performance at a glance</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-green-600 mb-1">{matchStats.wins}</div>
+                            <div className="text-sm text-muted-foreground">Wins</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-red-600 mb-1">{matchStats.losses}</div>
+                            <div className="text-sm text-muted-foreground">Losses</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-3xl font-bold mb-1">{matchStats.totalMatches}</div>
+                            <div className="text-sm text-muted-foreground">Total Matches</div>
+                          </div>
+                          <div className="text-center">
+                            <div className="text-3xl font-bold text-primary mb-1">{matchStats.winRate}%</div>
+                            <div className="text-sm text-muted-foreground">Win Rate</div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* AI Insights */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="font-serif">AI Insights & Recommendations</CardTitle>
+                        <CardDescription>Personalized analysis of your tennis performance</CardDescription>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        {(() => {
+                          const completedMatches = matches.filter((m) => m.status === "completed")
+                          const recentMatches = completedMatches.slice(0, 5)
+                          const insights = []
+
+                          // Win rate analysis
+                          if (matchStats.winRate >= 70) {
+                            insights.push({
+                              type: "positive",
+                              title: "Excellent Performance",
+                              description: `You're dominating with a ${matchStats.winRate}% win rate! Keep up the great work.`,
+                              icon: "🏆",
+                            })
+                          } else if (matchStats.winRate >= 50) {
+                            insights.push({
+                              type: "neutral",
+                              title: "Solid Performance",
+                              description: `Your ${matchStats.winRate}% win rate shows consistent play. Focus on key improvements to reach the next level.`,
+                              icon: "📈",
+                            })
+                          } else if (matchStats.winRate < 50 && completedMatches.length >= 3) {
+                            insights.push({
+                              type: "improvement",
+                              title: "Growth Opportunity",
+                              description: "Consider working on your serve and return game to improve your win rate.",
+                              icon: "💪",
+                            })
+                          }
+
+                          // Activity analysis
+                          if (completedMatches.length >= 10) {
+                            insights.push({
+                              type: "positive",
+                              title: "Active Player",
+                              description: `You've completed ${completedMatches.length} matches! Your dedication is paying off.`,
+                              icon: "🎾",
+                            })
+                          } else if (completedMatches.length >= 5) {
+                            insights.push({
+                              type: "neutral",
+                              title: "Building Momentum",
+                              description:
+                                "You're developing a good playing rhythm. Try to maintain regular match frequency.",
+                              icon: "⚡",
+                            })
+                          }
+
+                          // Opponent diversity
+                          const uniqueOpponents = new Set(completedMatches.map((m) => m.opponent)).size
+                          if (uniqueOpponents >= 5) {
+                            insights.push({
+                              type: "positive",
+                              title: "Diverse Competition",
+                              description: `Playing against ${uniqueOpponents} different opponents helps improve your adaptability.`,
+                              icon: "🌟",
+                            })
+                          }
+
+                          return insights.length > 0 ? (
+                            insights.map((insight, index) => (
+                              <div key={index} className="flex items-start gap-3 p-4 rounded-lg bg-muted/50">
+                                <div className="text-2xl">{insight.icon}</div>
+                                <div>
+                                  <h4 className="font-semibold mb-1">{insight.title}</h4>
+                                  <p className="text-sm text-muted-foreground">{insight.description}</p>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center py-4">
+                              <p className="text-muted-foreground">
+                                Complete more matches to get personalized insights!
+                              </p>
+                            </div>
+                          )
+                        })()}
+                      </CardContent>
+                    </Card>
+
+                    {/* Opponent Analysis */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="font-serif">Opponent Analysis</CardTitle>
+                        <CardDescription>Your performance against different opponents</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {(() => {
+                          const completedMatches = matches.filter((m) => m.status === "completed")
+                          const opponentStats = completedMatches.reduce(
+                            (acc, match) => {
+                              const opponent = match.opponent
+                              if (!acc[opponent]) {
+                                acc[opponent] = { wins: 0, losses: 0, total: 0 }
+                              }
+                              acc[opponent].total++
+                              // Simple win detection based on score containing "6-"
+                              if (match.score && match.score.includes("6-")) {
+                                acc[opponent].wins++
+                              } else {
+                                acc[opponent].losses++
+                              }
+                              return acc
+                            },
+                            {} as Record<string, { wins: number; losses: number; total: number }>,
+                          )
+
+                          const sortedOpponents = Object.entries(opponentStats)
+                            .sort(([, a], [, b]) => b.total - a.total)
+                            .slice(0, 5)
+
+                          return sortedOpponents.length > 0 ? (
+                            <div className="space-y-3">
+                              {sortedOpponents.map(([opponent, stats]) => {
+                                const winRate = Math.round((stats.wins / stats.total) * 100)
+                                return (
+                                  <div
+                                    key={opponent}
+                                    className="flex items-center justify-between p-3 rounded-lg bg-muted/30"
+                                  >
+                                    <div className="flex items-center gap-3">
+                                      <Avatar className="h-10 w-10">
+                                        <AvatarFallback className="bg-primary/10 text-primary font-semibold text-sm">
+                                          {opponent
+                                            .split(" ")
+                                            .map((n) => n[0])
+                                            .join("")}
+                                        </AvatarFallback>
+                                      </Avatar>
+                                      <div>
+                                        <p className="font-semibold">{opponent}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                          {stats.total} match{stats.total !== 1 ? "es" : ""}
+                                        </p>
+                                      </div>
+                                    </div>
+                                    <div className="text-right">
+                                      <div className="text-lg font-bold">{winRate}%</div>
+                                      <div className="text-sm text-muted-foreground">
+                                        {stats.wins}W - {stats.losses}L
+                                      </div>
+                                    </div>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          ) : (
+                            <div className="text-center py-4">
+                              <p className="text-muted-foreground">No opponent data available yet.</p>
+                            </div>
+                          )
+                        })()}
+                      </CardContent>
+                    </Card>
+
+                    {/* Playing Patterns */}
+                    <Card>
+                      <CardHeader>
+                        <CardTitle className="font-serif">Playing Patterns</CardTitle>
+                        <CardDescription>When and where you play best</CardDescription>
+                      </CardHeader>
+                      <CardContent>
+                        {(() => {
+                          const completedMatches = matches.filter((m) => m.status === "completed")
+
+                          // Analyze playing locations
+                          const locationStats = completedMatches.reduce(
+                            (acc, match) => {
+                              const location = match.location
+                              if (!acc[location]) {
+                                acc[location] = { count: 0, wins: 0 }
+                              }
+                              acc[location].count++
+                              if (match.score && match.score.includes("6-")) {
+                                acc[location].wins++
+                              }
+                              return acc
+                            },
+                            {} as Record<string, { count: number; wins: number }>,
+                          )
+
+                          const topLocations = Object.entries(locationStats)
+                            .sort(([, a], [, b]) => b.count - a.count)
+                            .slice(0, 3)
+
+                          return (
+                            <div className="space-y-4">
+                              <div>
+                                <h4 className="font-semibold mb-3">Favorite Courts</h4>
+                                {topLocations.length > 0 ? (
+                                  <div className="space-y-2">
+                                    {topLocations.map(([location, stats]) => {
+                                      const winRate = Math.round((stats.wins / stats.count) * 100)
+                                      return (
+                                        <div
+                                          key={location}
+                                          className="flex items-center justify-between p-2 rounded bg-muted/30"
+                                        >
+                                          <div className="flex items-center gap-2">
+                                            <MapPin className="h-4 w-4 text-muted-foreground" />
+                                            <span className="font-medium">{location}</span>
+                                          </div>
+                                          <div className="text-sm text-muted-foreground">
+                                            {stats.count} matches • {winRate}% win rate
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
+                                ) : (
+                                  <p className="text-muted-foreground text-sm">No location data available yet.</p>
+                                )}
+                              </div>
+
+                              <div>
+                                <h4 className="font-semibold mb-3">Performance Insights</h4>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
+                                    <div className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                      Most Active
+                                    </div>
+                                    <div className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                                      {topLocations[0] ? topLocations[0][0] : "No data"}
+                                    </div>
+                                  </div>
+                                  <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
+                                    <div className="text-sm font-medium text-green-800 dark:text-green-200">
+                                      Best Performance
+                                    </div>
+                                    <div className="text-lg font-bold text-green-900 dark:text-green-100">
+                                      {(() => {
+                                        const bestLocation = topLocations.reduce(
+                                          (best, [location, stats]) => {
+                                            const winRate = stats.wins / stats.count
+                                            const bestRate = best ? best.stats.wins / best.stats.count : 0
+                                            return winRate > bestRate ? { location, stats } : best
+                                          },
+                                          null as { location: string; stats: { count: number; wins: number } } | null,
+                                        )
+                                        return bestLocation ? bestLocation.location : "No data"
+                                      })()}
+                                    </div>
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          )
+                        })()}
+                      </CardContent>
+                    </Card>
+                  </div>
+                )}
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Sidebar */}
