@@ -50,6 +50,8 @@ export function ScoreTracker({
   player2Name,
   onSaveScore,
 }: ScoreTrackerProps) {
+  const MATCH_PROGRESS_KEY = `setpoint_match_progress_${matchId}`
+
   const [score, setScore] = useState<ScoreState>({
     player1: { sets: [0], currentSet: 0, currentGame: 0 },
     player2: { sets: [0], currentSet: 0, currentGame: 0 },
@@ -63,18 +65,44 @@ export function ScoreTracker({
 
   useEffect(() => {
     if (open) {
-      // Reset score when dialog opens
-      const initialScore = {
-        player1: { sets: [0], currentSet: 0, currentGame: 0 },
-        player2: { sets: [0], currentSet: 0, currentGame: 0 },
-        currentSetIndex: 0,
-        matchComplete: false,
-        winner: null,
+      const savedProgress = localStorage.getItem(MATCH_PROGRESS_KEY)
+
+      if (savedProgress) {
+        try {
+          const { score: savedScore, history: savedHistory } = JSON.parse(savedProgress)
+          setScore(savedScore)
+          setHistory(savedHistory)
+        } catch (error) {
+          console.error("[v0] Error loading match progress:", error)
+          const initialScore = {
+            player1: { sets: [0], currentSet: 0, currentGame: 0 },
+            player2: { sets: [0], currentSet: 0, currentGame: 0 },
+            currentSetIndex: 0,
+            matchComplete: false,
+            winner: null,
+          }
+          setScore(initialScore)
+          setHistory([initialScore])
+        }
+      } else {
+        const initialScore = {
+          player1: { sets: [0], currentSet: 0, currentGame: 0 },
+          player2: { sets: [0], currentSet: 0, currentGame: 0 },
+          currentSetIndex: 0,
+          matchComplete: false,
+          winner: null,
+        }
+        setScore(initialScore)
+        setHistory([initialScore])
       }
-      setScore(initialScore)
-      setHistory([initialScore])
     }
-  }, [open])
+  }, [open, matchId])
+
+  useEffect(() => {
+    if (open && !score.matchComplete) {
+      localStorage.setItem(MATCH_PROGRESS_KEY, JSON.stringify({ score, history }))
+    }
+  }, [score, history, open, matchId, score.matchComplete])
 
   const addPoint = (player: "player1" | "player2") => {
     if (score.matchComplete) return
@@ -86,42 +114,33 @@ export function ScoreTracker({
       const currentPlayer = newScore[player]
       const opponent = newScore[player === "player1" ? "player2" : "player1"]
 
-      // Increment current game score
       currentPlayer.currentGame++
 
-      // Check for game win
       if (currentPlayer.currentGame >= 4) {
-        // Standard game win (4-0, 4-1, 4-2)
         if (opponent.currentGame <= 2) {
           currentPlayer.sets[newScore.currentSetIndex]++
           currentPlayer.currentGame = 0
           opponent.currentGame = 0
-        }
-        // Deuce situation (both at 3+)
-        else if (currentPlayer.currentGame - opponent.currentGame >= 2) {
+        } else if (currentPlayer.currentGame - opponent.currentGame >= 2) {
           currentPlayer.sets[newScore.currentSetIndex]++
           currentPlayer.currentGame = 0
           opponent.currentGame = 0
         }
       }
 
-      // Check for set win (6 games with 2 game lead, or 7-5, or tiebreak at 6-6)
       const p1Games = newScore.player1.sets[newScore.currentSetIndex]
       const p2Games = newScore.player2.sets[newScore.currentSetIndex]
 
       if ((p1Games >= 6 && p1Games - p2Games >= 2) || p1Games === 7) {
-        // Player 1 wins set
         newScore.player1.sets.push(0)
         newScore.player2.sets.push(0)
         newScore.currentSetIndex++
       } else if ((p2Games >= 6 && p2Games - p1Games >= 2) || p2Games === 7) {
-        // Player 2 wins set
         newScore.player1.sets.push(0)
         newScore.player2.sets.push(0)
         newScore.currentSetIndex++
       }
 
-      // Check for match win (best of 3 sets)
       const p1SetsWon = newScore.player1.sets
         .slice(0, -1)
         .filter((s) => s > newScore.player2.sets[newScore.player1.sets.indexOf(s)]).length
@@ -184,18 +203,16 @@ export function ScoreTracker({
 
       try {
         const finalScore = formatFinalScore()
-        const winner = score.winner // This is already "player1" or "player2"
+        const winner = score.winner
 
-        // Save the score
         onSaveScore(matchId, finalScore, winner)
 
-        // Small delay to ensure state updates complete
+        localStorage.removeItem(MATCH_PROGRESS_KEY)
+
         await new Promise((resolve) => setTimeout(resolve, 100))
 
-        // Close dialog and return to dashboard
         onOpenChange(false)
 
-        // Reset saving state
         setIsSaving(false)
       } catch (error) {
         console.error("[v0] Error saving match:", error)
@@ -206,7 +223,7 @@ export function ScoreTracker({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="font-serif text-xl">Live Score Tracking</DialogTitle>
           <DialogDescription>
@@ -281,28 +298,26 @@ export function ScoreTracker({
             <CardHeader>
               <CardTitle className="text-center font-serif">Set Scores</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="space-y-3">
-                {score.player1.sets.map((p1Games, setIndex) => {
-                  const p2Games = score.player2.sets[setIndex] || 0
-                  const isCurrentSet = setIndex === score.currentSetIndex
-                  const isCompletedSet = setIndex < score.currentSetIndex
+            <CardContent className="max-h-[200px] overflow-y-auto">
+              {score.player1.sets.map((p1Games, setIndex) => {
+                const p2Games = score.player2.sets[setIndex] || 0
+                const isCurrentSet = setIndex === score.currentSetIndex
+                const isCompletedSet = setIndex < score.currentSetIndex
 
-                  return (
-                    <div key={setIndex} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                      <div className="flex items-center gap-4">
-                        <Badge variant={isCurrentSet ? "default" : "secondary"}>Set {setIndex + 1}</Badge>
-                        {isCurrentSet && <Badge variant="outline">Current</Badge>}
-                      </div>
-                      <div className="flex items-center gap-8 font-mono text-lg font-semibold">
-                        <span className={p1Games > p2Games && isCompletedSet ? "text-primary" : ""}>{p1Games}</span>
-                        <span>-</span>
-                        <span className={p2Games > p1Games && isCompletedSet ? "text-primary" : ""}>{p2Games}</span>
-                      </div>
+                return (
+                  <div key={setIndex} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                    <div className="flex items-center gap-4">
+                      <Badge variant={isCurrentSet ? "default" : "secondary"}>Set {setIndex + 1}</Badge>
+                      {isCurrentSet && <Badge variant="outline">Current</Badge>}
                     </div>
-                  )
-                })}
-              </div>
+                    <div className="flex items-center gap-8 font-mono text-lg font-semibold">
+                      <span className={p1Games > p2Games && isCompletedSet ? "text-primary" : ""}>{p1Games}</span>
+                      <span>-</span>
+                      <span className={p2Games > p1Games && isCompletedSet ? "text-primary" : ""}>{p2Games}</span>
+                    </div>
+                  </div>
+                )
+              })}
             </CardContent>
           </Card>
 

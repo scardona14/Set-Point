@@ -10,13 +10,23 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { CalendarDays, Users, Trophy, Plus, MapPin, Clock, Play } from "lucide-react"
+import { CalendarDays, Users, Trophy, Plus, MapPin, Clock, Play, Trash2 } from "lucide-react"
 import { CreateMatchDialog } from "@/components/create-match-dialog"
 import { ScoreTracker } from "@/components/score-tracker"
 import { FriendsManager } from "@/components/friends-manager"
 import { NotificationCenter } from "@/components/notification-center"
 import { UserProfileMenu } from "@/components/user-profile-menu"
 import { Alert, AlertDescription } from "@/components/ui/alert"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import Image from "next/image"
 
 interface Match {
@@ -90,6 +100,7 @@ export default function TennisMatchOrganizer() {
   const [showMatchHistory, setShowMatchHistory] = useState(false)
   const [authError, setAuthError] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
+  const [matchToDelete, setMatchToDelete] = useState<Match | null>(null)
 
   useEffect(() => {
     const savedUserId = localStorage.getItem(CURRENT_USER_KEY)
@@ -267,6 +278,18 @@ export default function TennisMatchOrganizer() {
         status: "upcoming",
       }
       setMatches((prev) => [newMatch, ...prev])
+    }
+  }
+
+  const handleDeleteMatch = (matchId: string) => {
+    const updatedMatches = matches.filter((m) => m.id !== matchId)
+    setMatches(updatedMatches)
+    setMatchToDelete(null)
+
+    if (currentUser) {
+      const userData = getUserData(currentUser.id) || {}
+      userData.matches = updatedMatches
+      saveUserData(currentUser.id, userData)
     }
   }
 
@@ -559,57 +582,59 @@ export default function TennisMatchOrganizer() {
                         </CardContent>
                       </Card>
                     ) : (
-                      matches
-                        .filter((m) => m.status === "completed")
-                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-                        .map((match) => (
-                          <Card key={match.id} className="hover:shadow-md transition-shadow">
-                            <CardContent className="p-6">
-                              <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-4">
-                                  <Avatar className="h-12 w-12">
-                                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                                      {match.opponent
-                                        .split(" ")
-                                        .map((n) => n[0])
-                                        .join("")}
-                                    </AvatarFallback>
-                                  </Avatar>
-                                  <div>
-                                    <p className="font-semibold text-lg">{match.opponent}</p>
-                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                                      <div className="flex items-center gap-1">
-                                        <CalendarDays className="h-3 w-3" />
-                                        {formatDate(match.date)}
-                                      </div>
-                                      <div className="flex items-center gap-1">
-                                        <MapPin className="h-3 w-3" />
-                                        {match.location}
+                      <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                        {matches
+                          .filter((m) => m.status === "completed")
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((match) => (
+                            <Card key={match.id} className="hover:shadow-md transition-shadow">
+                              <CardContent className="p-6">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center gap-4">
+                                    <Avatar className="h-12 w-12">
+                                      <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                        {match.opponent
+                                          .split(" ")
+                                          .map((n) => n[0])
+                                          .join("")}
+                                      </AvatarFallback>
+                                    </Avatar>
+                                    <div>
+                                      <p className="font-semibold text-lg">{match.opponent}</p>
+                                      <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                                        <div className="flex items-center gap-1">
+                                          <CalendarDays className="h-3 w-3" />
+                                          {formatDate(match.date)}
+                                        </div>
+                                        <div className="flex items-center gap-1">
+                                          <MapPin className="h-3 w-3" />
+                                          {match.location}
+                                        </div>
                                       </div>
                                     </div>
                                   </div>
+                                  <div className="text-right flex flex-col items-end gap-2">
+                                    <Badge variant="secondary" className="capitalize">
+                                      Completed
+                                    </Badge>
+                                    {match.score && (
+                                      <p className="text-lg font-mono font-semibold text-primary">{match.score}</p>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="text-right flex flex-col items-end gap-2">
-                                  <Badge variant="secondary" className="capitalize">
-                                    Completed
-                                  </Badge>
-                                  {match.score && (
-                                    <p className="text-lg font-mono font-semibold text-primary">{match.score}</p>
-                                  )}
-                                </div>
-                              </div>
-                              {match.notes && (
-                                <div className="mt-4 pt-4 border-t">
-                                  <p className="text-sm text-muted-foreground">{match.notes}</p>
-                                </div>
-                              )}
-                            </CardContent>
-                          </Card>
-                        ))
+                                {match.notes && (
+                                  <div className="mt-4 pt-4 border-t">
+                                    <p className="text-sm text-muted-foreground">{match.notes}</p>
+                                  </div>
+                                )}
+                              </CardContent>
+                            </Card>
+                          ))}
+                      </div>
                     )}
                   </div>
                 ) : (
-                  <div className="space-y-4">
+                  <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
                     {matches.filter((m) => m.status !== "completed").length === 0 ? (
                       <Card>
                         <CardContent className="p-8 text-center">
@@ -666,12 +691,28 @@ export default function TennisMatchOrganizer() {
                                     {match.status.replace("-", " ")}
                                   </Badge>
                                   {match.score && <p className="text-sm font-mono font-semibold">{match.score}</p>}
-                                  {(match.status === "upcoming" || match.status === "in-progress") && (
-                                    <Button size="sm" variant="outline" onClick={() => handleStartScoreTracking(match)}>
-                                      <Play className="h-3 w-3 mr-1" />
-                                      {match.status === "upcoming" ? "Start" : "Continue"}
-                                    </Button>
-                                  )}
+                                  <div className="flex items-center gap-2">
+                                    {(match.status === "upcoming" || match.status === "in-progress") && (
+                                      <Button
+                                        size="sm"
+                                        variant="outline"
+                                        onClick={() => handleStartScoreTracking(match)}
+                                      >
+                                        <Play className="h-3 w-3 mr-1" />
+                                        {match.status === "upcoming" ? "Start" : "Continue"}
+                                      </Button>
+                                    )}
+                                    {match.status === "upcoming" && (
+                                      <Button
+                                        size="sm"
+                                        variant="ghost"
+                                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                                        onClick={() => setMatchToDelete(match)}
+                                      >
+                                        <Trash2 className="h-4 w-4" />
+                                      </Button>
+                                    )}
+                                  </div>
                                 </div>
                               </div>
                               {match.notes && (
@@ -984,7 +1025,7 @@ export default function TennisMatchOrganizer() {
                                     <div className="text-sm font-medium text-green-800 dark:text-green-200">
                                       Best Performance
                                     </div>
-                                    <div className="text-lg font-bold text-green-900 dark:text-green-100">
+                                    <div className="text-lg font-bold text-blue-900 dark:text-blue-100">
                                       {(() => {
                                         const bestLocation = topLocations.reduce(
                                           (best, [location, stats]) => {
@@ -1094,6 +1135,26 @@ export default function TennisMatchOrganizer() {
       )}
 
       <FriendsManager open={showFriendsManager} onOpenChange={setShowFriendsManager} currentUserId={currentUser.id} />
+
+      <AlertDialog open={!!matchToDelete} onOpenChange={(open) => !open && setMatchToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Match?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel your match with {matchToDelete?.opponent}? This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep Match</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => matchToDelete && handleDeleteMatch(matchToDelete.id)}
+            >
+              Cancel Match
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }
