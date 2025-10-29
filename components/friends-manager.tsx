@@ -16,8 +16,21 @@ import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { UserPlus, UserMinus, Mail, Check, X, Search, Trophy, Calendar, Users, Phone } from "lucide-react"
+import {
+  UserPlus,
+  UserMinus,
+  Mail,
+  Check,
+  X,
+  Search,
+  Trophy,
+  Calendar,
+  Users,
+  Phone,
+  AlertTriangle,
+} from "lucide-react"
 import { SMSService } from "@/lib/sms-service"
+import { EmailService } from "@/lib/email-service"
 
 interface Friend {
   id: string
@@ -102,7 +115,7 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
     const sendingButton = document.querySelector("[data-sending]") as HTMLButtonElement
     if (sendingButton) {
       sendingButton.disabled = true
-      sendingButton.textContent = contactMethod === "phone" ? "Sending SMS..." : "Sending..."
+      sendingButton.textContent = contactMethod === "phone" ? "Sending SMS..." : "Sending Email..."
     }
 
     const newFriend: Friend = {
@@ -114,22 +127,34 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
       skillLevel: "Intermediate",
     }
 
-    if (contactMethod === "phone") {
-      try {
-        const currentUser = JSON.parse(localStorage.getItem(`setpoint_user_${currentUserId}`) || "{}")
-        const senderName = currentUser.name || "A tennis player"
+    try {
+      const currentUser = JSON.parse(localStorage.getItem(`setpoint_user_${currentUserId}`) || "{}")
+      const senderName = currentUser.name || "A tennis player"
 
+      if (contactMethod === "phone") {
         const success = await SMSService.sendInvitation(newFriendContact, senderName)
-
         if (success) {
-          alert(`SMS invitation sent to ${newFriendContact}! They'll receive a message about Set Point.`)
+          alert(
+            `⚠️ DEMO MODE: SMS invitation simulated for ${newFriendContact}!\n\nThis is a demonstration - no real SMS was sent. For real SMS functionality, you would need:\n• SMS service provider (Twilio, AWS SNS)\n• API keys and server setup\n• Phone number verification`,
+          )
         } else {
-          alert("Failed to send SMS invitation. Friend request still sent.")
+          alert("Demo SMS simulation failed. Friend request still added.")
         }
-      } catch (error) {
-        console.error("[v0] SMS sending error:", error)
-        alert("SMS service unavailable. Friend request sent without SMS notification.")
+      } else {
+        const success = await EmailService.sendInvitation(newFriendContact, senderName)
+        if (success) {
+          alert(
+            `⚠️ DEMO MODE: Email invitation simulated for ${newFriendContact}!\n\nThis is a demonstration - no real email was sent. For real email functionality, you would need:\n• Email service provider (SendGrid, AWS SES)\n• API keys and server setup\n• Email verification`,
+          )
+        } else {
+          alert("Demo email simulation failed. Friend request still added.")
+        }
       }
+    } catch (error) {
+      console.error("[v0] Invitation sending error:", error)
+      alert(
+        `${contactMethod === "phone" ? "SMS" : "Email"} service unavailable. Friend request sent without notification.`,
+      )
     }
 
     setFriends((prev) => [...prev, newFriend])
@@ -365,6 +390,16 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
 
           <TabsContent value="add" className="space-y-4">
             <div className="space-y-4">
+              <div className="bg-yellow-50 border border-yellow-200 p-3 rounded-lg flex items-start gap-2">
+                <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <p className="font-semibold text-yellow-800">Demo Mode</p>
+                  <p className="text-yellow-700">
+                    SMS and email invitations are simulated for demonstration. Recipients won't receive actual messages.
+                  </p>
+                </div>
+              </div>
+
               <div className="flex gap-2 mb-4">
                 <Button
                   variant={contactMethod === "email" ? "default" : "outline"}
@@ -373,7 +408,7 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
                   className="flex items-center gap-2"
                 >
                   <Mail className="h-4 w-4" />
-                  Email
+                  Email (Demo)
                 </Button>
                 <Button
                   variant={contactMethod === "phone" ? "default" : "outline"}
@@ -382,7 +417,7 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
                   className="flex items-center gap-2"
                 >
                   <Phone className="h-4 w-4" />
-                  Phone
+                  Phone (Demo)
                 </Button>
               </div>
 
@@ -407,14 +442,18 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
               </div>
 
               <div className="bg-muted/50 p-4 rounded-lg">
-                <h4 className="font-semibold mb-2">How to add friends:</h4>
+                <h4 className="font-semibold mb-2">How friend invitations work:</h4>
                 <ul className="text-sm text-muted-foreground space-y-1">
                   <li>• Enter your friend's {contactMethod === "email" ? "email address" : "phone number"}</li>
                   <li>
-                    • They'll receive a {contactMethod === "phone" ? "text message" : "friend request notification"}
+                    • <strong>Demo:</strong> Invitation is simulated (not actually sent)
                   </li>
-                  <li>• Once accepted, you can schedule matches together</li>
-                  <li>• Build your tennis network and track your games</li>
+                  <li>
+                    • <strong>Production:</strong> Would send real {contactMethod === "phone" ? "SMS" : "email"}{" "}
+                    invitation
+                  </li>
+                  <li>• Friends can then create accounts and accept your invitation</li>
+                  <li>• Build your tennis network and schedule matches together</li>
                 </ul>
               </div>
             </div>

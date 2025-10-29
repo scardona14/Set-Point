@@ -31,7 +31,7 @@ export class SMSService {
         smsMessage.status = "delivered"
       }, 2000)
 
-      console.log(`[v0] Mock SMS sent to ${phoneNumber}: ${message}`)
+      console.log(`[v0] DEMO SMS (not actually sent) to ${phoneNumber}: ${message}`)
       return true
     } catch (error) {
       console.error("[v0] SMS sending failed:", error)
