@@ -59,6 +59,7 @@ export function ScoreTracker({
   })
 
   const [history, setHistory] = useState<ScoreState[]>([])
+  const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (open) {
@@ -177,12 +178,29 @@ export function ScoreTracker({
       .join(", ")
   }
 
-  const handleSaveMatch = () => {
+  const handleSaveMatch = async () => {
     if (score.matchComplete && score.winner) {
-      const finalScore = formatFinalScore()
-      const winnerName = score.winner === "player1" ? player1Name : player2Name
-      onSaveScore(matchId, finalScore, winnerName)
-      onOpenChange(false)
+      setIsSaving(true)
+
+      try {
+        const finalScore = formatFinalScore()
+        const winner = score.winner // This is already "player1" or "player2"
+
+        // Save the score
+        onSaveScore(matchId, finalScore, winner)
+
+        // Small delay to ensure state updates complete
+        await new Promise((resolve) => setTimeout(resolve, 100))
+
+        // Close dialog and return to dashboard
+        onOpenChange(false)
+
+        // Reset saving state
+        setIsSaving(false)
+      } catch (error) {
+        console.error("[v0] Error saving match:", error)
+        setIsSaving(false)
+      }
     }
   }
 
@@ -307,26 +325,26 @@ export function ScoreTracker({
             <Button
               variant="outline"
               onClick={undoLastPoint}
-              disabled={history.length <= 1}
+              disabled={history.length <= 1 || isSaving}
               className="flex-1 bg-transparent"
             >
               <RotateCcw className="h-4 w-4 mr-2" />
               Undo
             </Button>
-            <Button variant="outline" onClick={resetMatch} className="flex-1 bg-transparent">
+            <Button variant="outline" onClick={resetMatch} className="flex-1 bg-transparent" disabled={isSaving}>
               Reset Match
             </Button>
           </div>
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isSaving}>
             Close
           </Button>
           {score.matchComplete && (
-            <Button onClick={handleSaveMatch}>
+            <Button onClick={handleSaveMatch} disabled={isSaving}>
               <Save className="h-4 w-4 mr-2" />
-              Save Result
+              {isSaving ? "Saving..." : "Save Result"}
             </Button>
           )}
         </DialogFooter>

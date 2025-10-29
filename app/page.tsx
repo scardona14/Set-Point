@@ -28,6 +28,9 @@ interface Match {
   status: "upcoming" | "completed" | "in-progress"
   score?: string
   notes?: string
+  matchFormat?: "singles" | "doubles"
+  doublesPartner?: string
+  winner?: string // "player1" or "player2"
 }
 
 interface User {
@@ -234,7 +237,7 @@ export default function TennisMatchOrganizer() {
 
   const handleSaveScore = (matchId: string, finalScore: string, winner: string) => {
     const updatedMatches = matches.map((match) =>
-      match.id === matchId ? { ...match, status: "completed" as const, score: finalScore } : match,
+      match.id === matchId ? { ...match, status: "completed" as const, score: finalScore, winner } : match,
     )
     setMatches(updatedMatches)
     setActiveMatch(null)
@@ -278,9 +281,7 @@ export default function TennisMatchOrganizer() {
 
   const getMatchStats = () => {
     const completedMatches = matches.filter((m) => m.status === "completed")
-    const wins = completedMatches.filter((m) => {
-      return m.score && m.score.includes("6-")
-    }).length
+    const wins = completedMatches.filter((m) => m.winner === "player1").length
     const losses = completedMatches.length - wins
     const winRate = completedMatches.length > 0 ? Math.round((wins / completedMatches.length) * 100) : 0
 
@@ -514,7 +515,6 @@ export default function TennisMatchOrganizer() {
                     </CardContent>
                   </Card>
                 ) : showMatchHistory ? (
-                  // ... existing match history code ...
                   <div className="space-y-4">
                     <div className="flex items-center justify-between mb-4">
                       <h3 className="font-serif text-xl font-semibold">Match History</h3>
@@ -609,69 +609,80 @@ export default function TennisMatchOrganizer() {
                     )}
                   </div>
                 ) : (
-                  // ... existing matches display code ...
                   <div className="space-y-4">
-                    {matches.map((match) => (
-                      <Card key={match.id} className="hover:shadow-md transition-shadow">
-                        <CardContent className="p-6">
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center gap-4">
-                              <Avatar className="h-12 w-12">
-                                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
-                                  {match.opponent
-                                    .split(" ")
-                                    .map((n) => n[0])
-                                    .join("")}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <p className="font-semibold text-lg">{match.opponent}</p>
-                                <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
-                                  <div className="flex items-center gap-1">
-                                    <CalendarDays className="h-3 w-3" />
-                                    {formatDate(match.date)}
-                                  </div>
-                                  <div className="flex items-center gap-1">
-                                    <Clock className="h-3 w-3" />
-                                    {match.time}
-                                  </div>
-                                </div>
-                                <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
-                                  <MapPin className="h-3 w-3" />
-                                  {match.location}
-                                </div>
-                              </div>
-                            </div>
-                            <div className="text-right flex flex-col items-end gap-2">
-                              <Badge
-                                variant={
-                                  match.status === "completed"
-                                    ? "secondary"
-                                    : match.status === "in-progress"
-                                      ? "default"
-                                      : "outline"
-                                }
-                                className="capitalize"
-                              >
-                                {match.status.replace("-", " ")}
-                              </Badge>
-                              {match.score && <p className="text-sm font-mono font-semibold">{match.score}</p>}
-                              {(match.status === "upcoming" || match.status === "in-progress") && (
-                                <Button size="sm" variant="outline" onClick={() => handleStartScoreTracking(match)}>
-                                  <Play className="h-3 w-3 mr-1" />
-                                  {match.status === "upcoming" ? "Start" : "Continue"}
-                                </Button>
-                              )}
-                            </div>
-                          </div>
-                          {match.notes && (
-                            <div className="mt-4 pt-4 border-t">
-                              <p className="text-sm text-muted-foreground">{match.notes}</p>
-                            </div>
-                          )}
+                    {matches.filter((m) => m.status !== "completed").length === 0 ? (
+                      <Card>
+                        <CardContent className="p-8 text-center">
+                          <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+                          <h3 className="font-serif text-xl font-semibold mb-2">No Active Matches</h3>
+                          <p className="text-muted-foreground mb-4">
+                            All your matches are completed. Schedule a new match to get back on the court!
+                          </p>
+                          <Button onClick={() => setShowCreateMatch(true)}>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Schedule New Match
+                          </Button>
                         </CardContent>
                       </Card>
-                    ))}
+                    ) : (
+                      matches
+                        .filter((m) => m.status !== "completed")
+                        .map((match) => (
+                          <Card key={match.id} className="hover:shadow-md transition-shadow">
+                            <CardContent className="p-6">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-4">
+                                  <Avatar className="h-12 w-12">
+                                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                      {match.opponent
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                  <div>
+                                    <p className="font-semibold text-lg">{match.opponent}</p>
+                                    <div className="flex items-center gap-4 text-sm text-muted-foreground mt-1">
+                                      <div className="flex items-center gap-1">
+                                        <CalendarDays className="h-3 w-3" />
+                                        {formatDate(match.date)}
+                                      </div>
+                                      <div className="flex items-center gap-1">
+                                        <Clock className="h-3 w-3" />
+                                        {match.time}
+                                      </div>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-sm text-muted-foreground mt-1">
+                                      <MapPin className="h-3 w-3" />
+                                      {match.location}
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="text-right flex flex-col items-end gap-2">
+                                  <Badge
+                                    variant={match.status === "in-progress" ? "default" : "outline"}
+                                    className="capitalize"
+                                  >
+                                    {match.status.replace("-", " ")}
+                                  </Badge>
+                                  {match.score && <p className="text-sm font-mono font-semibold">{match.score}</p>}
+                                  {(match.status === "upcoming" || match.status === "in-progress") && (
+                                    <Button size="sm" variant="outline" onClick={() => handleStartScoreTracking(match)}>
+                                      <Play className="h-3 w-3 mr-1" />
+                                      {match.status === "upcoming" ? "Start" : "Continue"}
+                                    </Button>
+                                  )}
+                                </div>
+                              </div>
+                              {match.notes && (
+                                <div className="mt-4 pt-4 border-t">
+                                  <p className="text-sm text-muted-foreground">{match.notes}</p>
+                                </div>
+                              )}
+                            </CardContent>
+                          </Card>
+                        ))
+                    )}
                   </div>
                 )}
               </TabsContent>
