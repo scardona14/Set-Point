@@ -299,6 +299,7 @@ export default function TennisMatchOrganizer() {
         time: "15:00",
         location: "City Sports Complex",
         status: "upcoming",
+        sport: selectedSport,
       }
       setMatches((prev) => [newMatch, ...prev])
     }
@@ -338,10 +339,10 @@ export default function TennisMatchOrganizer() {
 
   const matchStats = getMatchStats()
 
-  const sportLabels: Record<Sport, { name: string; icon: string }> = {
-    tennis: { name: "Tennis", icon: "🎾" },
-    pickleball: { name: "Pickleball", icon: "🏓" },
-    padel: { name: "Padel", icon: "🎾" },
+  const sportLabels: Record<Sport, { name: string; abbr: string }> = {
+    tennis: { name: "Tennis", abbr: "TEN" },
+    pickleball: { name: "Pickleball", abbr: "PKL" },
+    padel: { name: "Padel", abbr: "PDL" },
   }
 
   // Show a loading state while the guest user is being created
@@ -374,18 +375,18 @@ export default function TennisMatchOrganizer() {
               </div>
               <h1 className="font-serif text-xl font-bold">Set Point</h1>
             </div>
-            <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-1">
+            <div className="flex items-center gap-1 rounded-lg border border-border/50 bg-muted/30 p-1">
               {(["tennis", "pickleball", "padel"] as Sport[]).map((sport) => (
                 <button
                   key={sport}
                   onClick={() => setSelectedSport(sport)}
-                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-2 text-sm font-semibold transition-all ${
                     selectedSport === sport
-                      ? "bg-background text-foreground shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
+                      ? "bg-primary text-primary-foreground shadow-md"
+                      : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
                   }`}
                 >
-                  <span>{sportLabels[sport].icon}</span>
+                  <span className="font-mono text-xs">{sportLabels[sport].abbr}</span>
                   <span className="hidden sm:inline">{sportLabels[sport].name}</span>
                 </button>
               ))}
@@ -447,11 +448,11 @@ export default function TennisMatchOrganizer() {
           <Card>
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
-                  <Trophy className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
+                  <Trophy className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{matchStats.winRate}%</p>
+                  <p className="text-2xl font-bold font-mono">{matchStats.winRate}%</p>
                   <p className="text-sm text-muted-foreground">Win Rate</p>
                 </div>
               </div>
@@ -524,11 +525,11 @@ export default function TennisMatchOrganizer() {
                       <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                           <div>
-                            <p className="text-2xl font-bold text-green-600">{matchStats.wins}</p>
+                            <p className="text-2xl font-bold font-mono text-secondary">{matchStats.wins}</p>
                             <p className="text-sm text-muted-foreground">Wins</p>
                           </div>
                           <div>
-                            <p className="text-2xl font-bold text-red-600">{matchStats.losses}</p>
+                            <p className="text-2xl font-bold font-mono text-destructive">{matchStats.losses}</p>
                             <p className="text-sm text-muted-foreground">Losses</p>
                           </div>
                           <div>
@@ -738,19 +739,19 @@ export default function TennisMatchOrganizer() {
                       <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-green-600 mb-1">{matchStats.wins}</div>
+                            <div className="text-3xl font-bold font-mono text-secondary mb-1">{matchStats.wins}</div>
                             <div className="text-sm text-muted-foreground">Wins</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-red-600 mb-1">{matchStats.losses}</div>
+                            <div className="text-3xl font-bold font-mono text-destructive mb-1">{matchStats.losses}</div>
                             <div className="text-sm text-muted-foreground">Losses</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-3xl font-bold mb-1">{matchStats.totalMatches}</div>
+                            <div className="text-3xl font-bold font-mono mb-1">{matchStats.totalMatches}</div>
                             <div className="text-sm text-muted-foreground">Total Matches</div>
                           </div>
                           <div className="text-center">
-                            <div className="text-3xl font-bold text-primary mb-1">{matchStats.winRate}%</div>
+                            <div className="text-3xl font-bold font-mono text-primary mb-1">{matchStats.winRate}%</div>
                             <div className="text-sm text-muted-foreground">Win Rate</div>
                           </div>
                         </div>
@@ -980,19 +981,19 @@ export default function TennisMatchOrganizer() {
                               <div>
                                 <h4 className="font-semibold mb-3">Performance Insights</h4>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                  <div className="p-3 rounded-lg bg-blue-50 dark:bg-blue-900/20">
-                                    <div className="text-sm font-medium text-blue-800 dark:text-blue-200">
+                                  <div className="p-3 rounded-lg bg-primary/10">
+                                    <div className="text-sm font-medium text-primary">
                                       Most Active
                                     </div>
-                                    <div className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                                    <div className="text-lg font-bold text-foreground">
                                       {topLocations[0] ? topLocations[0][0] : "No data"}
                                     </div>
                                   </div>
-                                  <div className="p-3 rounded-lg bg-green-50 dark:bg-green-900/20">
-                                    <div className="text-sm font-medium text-green-800 dark:text-green-200">
+                                  <div className="p-3 rounded-lg bg-secondary/10">
+                                    <div className="text-sm font-medium text-secondary">
                                       Best Performance
                                     </div>
-                                    <div className="text-lg font-bold text-blue-900 dark:text-blue-100">
+                                    <div className="text-lg font-bold text-foreground">
                                       {(() => {
                                         const bestLocation = topLocations.reduce(
                                           (best, [location, stats]) => {

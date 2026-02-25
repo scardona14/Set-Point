@@ -269,25 +269,25 @@ export function ScoreTracker({
                     </AvatarFallback>
                   </Avatar>
                   <p className="font-semibold text-sm mb-2">{player1Name}</p>
-                  <div className="text-4xl font-bold font-mono mb-2">
+                  <div className="text-5xl font-bold font-mono mb-3 text-primary tracking-wider">
                     {isPickleball
                       ? score.player1.sets[score.currentSetIndex]
                       : formatGameScore(score.player1.currentGame)}
                   </div>
                   <Button
-                    size="sm"
+                    size="lg"
                     onClick={() => addPoint("player1")}
                     disabled={score.matchComplete}
-                    className="w-full"
+                    className="w-full min-h-[48px] text-base font-semibold"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-5 w-5 mr-1" />
                     Point
                   </Button>
                 </div>
 
                 {/* VS */}
                 <div className="text-center">
-                  <div className="text-2xl font-bold text-muted-foreground">VS</div>
+                  <div className="text-xl font-bold font-mono text-muted-foreground tracking-widest">VS</div>
                 </div>
 
                 {/* Player 2 */}
@@ -301,18 +301,18 @@ export function ScoreTracker({
                     </AvatarFallback>
                   </Avatar>
                   <p className="font-semibold text-sm mb-2">{player2Name}</p>
-                  <div className="text-4xl font-bold font-mono mb-2">
+                  <div className="text-5xl font-bold font-mono mb-3 text-secondary tracking-wider">
                     {isPickleball
                       ? score.player2.sets[score.currentSetIndex]
                       : formatGameScore(score.player2.currentGame)}
                   </div>
                   <Button
-                    size="sm"
+                    size="lg"
                     onClick={() => addPoint("player2")}
                     disabled={score.matchComplete}
-                    className="w-full"
+                    className="w-full min-h-[48px] text-base font-semibold bg-secondary text-secondary-foreground hover:bg-secondary/90"
                   >
-                    <Plus className="h-4 w-4 mr-1" />
+                    <Plus className="h-5 w-5 mr-1" />
                     Point
                   </Button>
                 </div>
