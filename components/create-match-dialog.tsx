@@ -31,26 +31,58 @@ interface Match {
   doublesPartner?: string
 }
 
+type Sport = "tennis" | "pickleball" | "padel"
+
 interface CreateMatchDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreateMatch: (match: Omit<Match, "id" | "status">) => void
+  sport: Sport
 }
 
-const locations = [
-  "Centro de Tennis Honda",
-  "Riviera Tennis Courts",
-  "Club Deportivo del Oeste",
-  "Tennis Club de Puerto Rico",
-  "Palmas Athletic Club",
-  "Club Náutico de San Juan",
-  "Dorado Beach Tennis Club",
-  "El San Juan Tennis Club",
-  "Caribe Hilton Tennis Courts",
-  "Universidad del Sagrado Corazón Tennis Courts",
-]
+const locationsBySport: Record<Sport, string[]> = {
+  tennis: [
+    "Centro de Tennis Honda",
+    "Riviera Tennis Courts",
+    "Club Deportivo del Oeste",
+    "Tennis Club de Puerto Rico",
+    "Palmas Athletic Club",
+    "Club Nautico de San Juan",
+    "Dorado Beach Tennis Club",
+    "El San Juan Tennis Club",
+    "Caribe Hilton Tennis Courts",
+    "Universidad del Sagrado Corazon Tennis Courts",
+  ],
+  pickleball: [
+    "Parque Central de Pickleball",
+    "Cancha de Pickleball Condado",
+    "Isla Verde Pickleball Courts",
+    "Bayamon Pickleball Center",
+    "Guaynabo Sports Complex Pickleball",
+    "Carolina Pickleball Courts",
+    "Caguas Pickleball Park",
+    "Ponce Pickleball Club",
+  ],
+  padel: [
+    "Padel Club Puerto Rico",
+    "Padel Indoor San Juan",
+    "Club de Padel Condado",
+    "Padel Bay Isla Verde",
+    "Guaynabo Padel Center",
+    "Dorado Padel Club",
+    "Caguas Padel Arena",
+    "Padel Pro Academy San Juan",
+  ],
+}
 
-export function CreateMatchDialog({ open, onOpenChange, onCreateMatch }: CreateMatchDialogProps) {
+const sportLabels: Record<Sport, string> = {
+  tennis: "Tennis",
+  pickleball: "Pickleball",
+  padel: "Padel",
+}
+
+export function CreateMatchDialog({ open, onOpenChange, onCreateMatch, sport }: CreateMatchDialogProps) {
+  const locations = locationsBySport[sport]
   const [formData, setFormData] = useState({
     opponent: "",
     date: "",
@@ -113,7 +145,7 @@ export function CreateMatchDialog({ open, onOpenChange, onCreateMatch }: CreateM
         <DialogHeader>
           <DialogTitle className="font-serif text-xl">Schedule New Match</DialogTitle>
           <DialogDescription>
-            Create a new tennis match. Enter your opponent's name and match details.
+            Schedule a new {sportLabels[sport].toLowerCase()} match. Enter your opponent{"'"}s name and match details.
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-6">

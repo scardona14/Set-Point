@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { CalendarDays, Users, Trophy, Plus, MapPin, Clock, Play, Trash2 } from "lucide-react"
+import { TournamentManager } from "@/components/tournament-manager"
 import { CreateMatchDialog } from "@/components/create-match-dialog"
 import { ScoreTracker } from "@/components/score-tracker"
 import { FriendsManager } from "@/components/friends-manager"
@@ -29,6 +30,8 @@ import {
 } from "@/components/ui/alert-dialog"
 import Image from "next/image"
 
+type Sport = "tennis" | "pickleball" | "padel"
+
 interface Match {
   id: string
   opponent: string
@@ -41,6 +44,7 @@ interface Match {
   matchFormat?: "singles" | "doubles"
   doublesPartner?: string
   winner?: string // "player1" or "player2"
+  sport: Sport
 }
 
 interface User {
@@ -91,6 +95,7 @@ const findUserByEmail = (email: string): User | null => {
 
 export default function TennisMatchOrganizer() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
+  const [selectedSport, setSelectedSport] = useState<Sport>("tennis")
   const [isSignUp, setIsSignUp] = useState(false)
   const [showCreateMatch, setShowCreateMatch] = useState(false)
   const [showScoreTracker, setShowScoreTracker] = useState(false)
@@ -217,11 +222,12 @@ export default function TennisMatchOrganizer() {
     saveUser(updatedUser)
   }
 
-  const handleCreateMatch = (matchData: Omit<Match, "id" | "status">) => {
+  const handleCreateMatch = (matchData: Omit<Match, "id" | "status" | "sport">) => {
     const newMatch: Match = {
       ...matchData,
       id: Date.now().toString(),
       status: "upcoming",
+      sport: selectedSport,
     }
     const updatedMatches = [newMatch, ...matches]
     setMatches(updatedMatches)
@@ -276,6 +282,7 @@ export default function TennisMatchOrganizer() {
         time: "15:00",
         location: "City Sports Complex",
         status: "upcoming",
+        sport: selectedSport,
       }
       setMatches((prev) => [newMatch, ...prev])
     }
@@ -302,8 +309,10 @@ export default function TennisMatchOrganizer() {
     })
   }
 
+  const sportMatches = matches.filter((m) => m.sport === selectedSport)
+
   const getMatchStats = () => {
-    const completedMatches = matches.filter((m) => m.status === "completed")
+    const completedMatches = sportMatches.filter((m) => m.status === "completed")
     const wins = completedMatches.filter((m) => m.winner === "player1").length
     const losses = completedMatches.length - wins
     const winRate = completedMatches.length > 0 ? Math.round((wins / completedMatches.length) * 100) : 0
@@ -312,6 +321,12 @@ export default function TennisMatchOrganizer() {
   }
 
   const matchStats = getMatchStats()
+
+  const sportLabels: Record<Sport, { name: string; icon: string }> = {
+    tennis: { name: "Tennis", icon: "🎾" },
+    pickleball: { name: "Pickleball", icon: "🏓" },
+    padel: { name: "Padel", icon: "🎾" },
+  }
 
   if (!currentUser) {
     return (
@@ -329,7 +344,8 @@ export default function TennisMatchOrganizer() {
             </div>
             <CardTitle className="font-serif text-2xl">Set Point</CardTitle>
             <CardDescription>
-              Your ultimate tennis organizer - organize matches with friends, track scores, and stay connected
+              Your ultimate racket sports organizer - tennis, pickleball, and padel. Organize matches, track scores, and
+              stay connected.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -419,6 +435,22 @@ export default function TennisMatchOrganizer() {
               </div>
               <h1 className="font-serif text-xl font-bold">Set Point</h1>
             </div>
+            <div className="flex items-center gap-2 rounded-lg border bg-muted/50 p-1">
+              {(["tennis", "pickleball", "padel"] as Sport[]).map((sport) => (
+                <button
+                  key={sport}
+                  onClick={() => setSelectedSport(sport)}
+                  className={`flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors ${
+                    selectedSport === sport
+                      ? "bg-background text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  <span>{sportLabels[sport].icon}</span>
+                  <span className="hidden sm:inline">{sportLabels[sport].name}</span>
+                </button>
+              ))}
+            </div>
             <div className="flex items-center gap-4">
               <NotificationCenter
                 currentUserId={currentUser.id}
@@ -441,7 +473,7 @@ export default function TennisMatchOrganizer() {
                   <CalendarDays className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{matches.filter((m) => m.status === "upcoming").length}</p>
+                  <p className="text-2xl font-bold">{sportMatches.filter((m) => m.status === "upcoming").length}</p>
                   <p className="text-sm text-muted-foreground">Upcoming Matches</p>
                 </div>
               </div>
@@ -455,7 +487,7 @@ export default function TennisMatchOrganizer() {
                 </div>
                 <div>
                   <p className="text-2xl font-bold">0</p>
-                  <p className="text-sm text-muted-foreground">Tennis Friends</p>
+                  <p className="text-sm text-muted-foreground">Friends</p>
                 </div>
               </div>
             </CardContent>
@@ -467,7 +499,7 @@ export default function TennisMatchOrganizer() {
                   <Trophy className="h-6 w-6 text-accent" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{matches.filter((m) => m.status === "completed").length}</p>
+                  <p className="text-2xl font-bold">{sportMatches.filter((m) => m.status === "completed").length}</p>
                   <p className="text-sm text-muted-foreground">Matches Played</p>
                 </div>
               </div>
@@ -514,13 +546,13 @@ export default function TennisMatchOrganizer() {
                   </div>
                 </div>
 
-                {matches.length === 0 && !showMatchHistory ? (
+                {sportMatches.length === 0 && !showMatchHistory ? (
                   <Card>
                     <CardContent className="p-8 text-center">
                       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
                         <Image
                           src="/tennis-ball-realistic.png"
-                          alt="Tennis Ball"
+                          alt="Set Point"
                           width={64}
                           height={64}
                           className="rounded-full"
@@ -528,8 +560,8 @@ export default function TennisMatchOrganizer() {
                       </div>
                       <h3 className="font-serif text-xl font-semibold mb-2">Welcome to Set Point!</h3>
                       <p className="text-muted-foreground mb-4">
-                        Ready to organize your first tennis match? Click "New Match" to get started and begin tracking
-                        your tennis journey.
+                        Ready to organize your first {sportLabels[selectedSport].name.toLowerCase()} match? Click "New
+                        Match" to get started.
                       </p>
                       <Button onClick={() => setShowCreateMatch(true)}>
                         <Plus className="h-4 w-4 mr-2" />
@@ -572,18 +604,19 @@ export default function TennisMatchOrganizer() {
                       </CardContent>
                     </Card>
 
-                    {matches.filter((m) => m.status === "completed").length === 0 ? (
+                    {sportMatches.filter((m) => m.status === "completed").length === 0 ? (
                       <Card>
                         <CardContent className="p-8 text-center">
                           <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                           <p className="text-muted-foreground">
-                            No completed matches yet. Start playing to build your history!
+                            No completed {sportLabels[selectedSport].name.toLowerCase()} matches yet. Start playing to
+                            build your history!
                           </p>
                         </CardContent>
                       </Card>
                     ) : (
                       <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                        {matches
+                        {sportMatches
                           .filter((m) => m.status === "completed")
                           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                           .map((match) => (
@@ -635,13 +668,14 @@ export default function TennisMatchOrganizer() {
                   </div>
                 ) : (
                   <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
-                    {matches.filter((m) => m.status !== "completed").length === 0 ? (
+                    {sportMatches.filter((m) => m.status !== "completed").length === 0 ? (
                       <Card>
                         <CardContent className="p-8 text-center">
                           <Trophy className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                           <h3 className="font-serif text-xl font-semibold mb-2">No Active Matches</h3>
                           <p className="text-muted-foreground mb-4">
-                            All your matches are completed. Schedule a new match to get back on the court!
+                            All your {sportLabels[selectedSport].name.toLowerCase()} matches are completed. Schedule a
+                            new match!
                           </p>
                           <Button onClick={() => setShowCreateMatch(true)}>
                             <Plus className="h-4 w-4 mr-2" />
@@ -650,7 +684,7 @@ export default function TennisMatchOrganizer() {
                         </CardContent>
                       </Card>
                     ) : (
-                      matches
+                      sportMatches
                         .filter((m) => m.status !== "completed")
                         .map((match) => (
                           <Card key={match.id} className="hover:shadow-md transition-shadow">
@@ -729,13 +763,7 @@ export default function TennisMatchOrganizer() {
               </TabsContent>
 
               <TabsContent value="tournaments" className="space-y-6">
-                <div className="text-center py-12">
-                  <Trophy className="h-16 w-16 text-muted-foreground mx-auto mb-4" />
-                  <h3 className="font-serif text-xl font-semibold mb-2">Tournament System</h3>
-                  <p className="text-muted-foreground mb-4">
-                    Create and manage tournaments with your tennis friends. Coming soon!
-                  </p>
-                </div>
+                <TournamentManager sport={selectedSport} currentUser={currentUser} />
               </TabsContent>
 
               {/* Analytics Tab */}
@@ -744,7 +772,7 @@ export default function TennisMatchOrganizer() {
                   <h2 className="font-serif text-2xl font-bold">Performance Analytics</h2>
                 </div>
 
-                {matches.filter((m) => m.status === "completed").length === 0 ? (
+                {sportMatches.filter((m) => m.status === "completed").length === 0 ? (
                   <Card>
                     <CardContent className="p-8 text-center">
                       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
@@ -766,7 +794,7 @@ export default function TennisMatchOrganizer() {
                     <Card>
                       <CardHeader>
                         <CardTitle className="font-serif">Performance Overview</CardTitle>
-                        <CardDescription>Your tennis performance at a glance</CardDescription>
+                        <CardDescription>Your {sportLabels[selectedSport].name.toLowerCase()} performance at a glance</CardDescription>
                       </CardHeader>
                       <CardContent>
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
@@ -794,11 +822,11 @@ export default function TennisMatchOrganizer() {
                     <Card>
                       <CardHeader>
                         <CardTitle className="font-serif">AI Insights & Recommendations</CardTitle>
-                        <CardDescription>Personalized analysis of your tennis performance</CardDescription>
+                        <CardDescription>Personalized analysis of your {sportLabels[selectedSport].name.toLowerCase()} performance</CardDescription>
                       </CardHeader>
                       <CardContent className="space-y-4">
                         {(() => {
-                          const completedMatches = matches.filter((m) => m.status === "completed")
+                          const completedMatches = sportMatches.filter((m) => m.status === "completed")
                           const recentMatches = completedMatches.slice(0, 5)
                           const insights = []
 
@@ -884,7 +912,7 @@ export default function TennisMatchOrganizer() {
                       </CardHeader>
                       <CardContent>
                         {(() => {
-                          const completedMatches = matches.filter((m) => m.status === "completed")
+                          const completedMatches = sportMatches.filter((m) => m.status === "completed")
                           const opponentStats = completedMatches.reduce(
                             (acc, match) => {
                               const opponent = match.opponent
@@ -959,7 +987,7 @@ export default function TennisMatchOrganizer() {
                       </CardHeader>
                       <CardContent>
                         {(() => {
-                          const completedMatches = matches.filter((m) => m.status === "completed")
+                          const completedMatches = sportMatches.filter((m) => m.status === "completed")
 
                           // Analyze playing locations
                           const locationStats = completedMatches.reduce(
@@ -1071,12 +1099,12 @@ export default function TennisMatchOrganizer() {
                   variant="outline"
                   className="w-full justify-start bg-transparent"
                   onClick={() => {
-                    const upcomingMatch = matches.find((m) => m.status === "upcoming" || m.status === "in-progress")
+                    const upcomingMatch = sportMatches.find((m) => m.status === "upcoming" || m.status === "in-progress")
                     if (upcomingMatch) {
                       handleStartScoreTracking(upcomingMatch)
                     }
                   }}
-                  disabled={!matches.some((m) => m.status === "upcoming" || m.status === "in-progress")}
+                  disabled={!sportMatches.some((m) => m.status === "upcoming" || m.status === "in-progress")}
                 >
                   <Trophy className="h-4 w-4 mr-2" />
                   Track Score
@@ -1098,7 +1126,7 @@ export default function TennisMatchOrganizer() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-3 text-sm">
-                  {matches
+                  {sportMatches
                     .filter((m) => m.status === "completed")
                     .slice(0, 3)
                     .map((match, index) => (
@@ -1111,7 +1139,7 @@ export default function TennisMatchOrganizer() {
                         </Badge>
                       </div>
                     ))}
-                  {matches.filter((m) => m.status === "completed").length === 0 && (
+                  {sportMatches.filter((m) => m.status === "completed").length === 0 && (
                     <p className="text-muted-foreground">No recent matches completed</p>
                   )}
                 </div>
@@ -1121,7 +1149,7 @@ export default function TennisMatchOrganizer() {
         </div>
       </main>
 
-      <CreateMatchDialog open={showCreateMatch} onOpenChange={setShowCreateMatch} onCreateMatch={handleCreateMatch} />
+      <CreateMatchDialog open={showCreateMatch} onOpenChange={setShowCreateMatch} onCreateMatch={handleCreateMatch} sport={selectedSport} />
 
       {activeMatch && (
         <ScoreTracker
@@ -1131,6 +1159,7 @@ export default function TennisMatchOrganizer() {
           player1Name={currentUser.name}
           player2Name={activeMatch.opponent}
           onSaveScore={handleSaveScore}
+          sport={selectedSport}
         />
       )}
 

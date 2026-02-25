@@ -15,6 +15,8 @@ import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Plus, Trophy, RotateCcw, Save } from "lucide-react"
 
+type Sport = "tennis" | "pickleball" | "padel"
+
 interface ScoreState {
   player1: {
     sets: number[]
@@ -38,9 +40,16 @@ interface ScoreTrackerProps {
   player1Name: string
   player2Name: string
   onSaveScore: (matchId: string, finalScore: string, winner: string) => void
+  sport: Sport
 }
 
 const TENNIS_SCORES = ["0", "15", "30", "40", "AD"]
+
+const sportConfig: Record<Sport, { setsToWin: number; label: string }> = {
+  tennis: { setsToWin: 2, label: "Tennis" },
+  pickleball: { setsToWin: 2, label: "Pickleball" },
+  padel: { setsToWin: 2, label: "Padel" },
+}
 
 export function ScoreTracker({
   open,
@@ -49,10 +58,13 @@ export function ScoreTracker({
   player1Name,
   player2Name,
   onSaveScore,
+  sport,
 }: ScoreTrackerProps) {
   const MATCH_PROGRESS_KEY = `setpoint_match_progress_${matchId}`
+  const isPickleball = sport === "pickleball"
+  const config = sportConfig[sport]
 
-  const [score, setScore] = useState<ScoreState>({
+  const createInitialScore = (): ScoreState => ({
     player1: { sets: [0], currentSet: 0, currentGame: 0 },
     player2: { sets: [0], currentSet: 0, currentGame: 0 },
     currentSetIndex: 0,
@@ -60,40 +72,27 @@ export function ScoreTracker({
     winner: null,
   })
 
+  const [score, setScore] = useState<ScoreState>(createInitialScore())
   const [history, setHistory] = useState<ScoreState[]>([])
   const [isSaving, setIsSaving] = useState(false)
 
   useEffect(() => {
     if (open) {
       const savedProgress = localStorage.getItem(MATCH_PROGRESS_KEY)
-
       if (savedProgress) {
         try {
           const { score: savedScore, history: savedHistory } = JSON.parse(savedProgress)
           setScore(savedScore)
           setHistory(savedHistory)
-        } catch (error) {
-          console.error("[v0] Error loading match progress:", error)
-          const initialScore = {
-            player1: { sets: [0], currentSet: 0, currentGame: 0 },
-            player2: { sets: [0], currentSet: 0, currentGame: 0 },
-            currentSetIndex: 0,
-            matchComplete: false,
-            winner: null,
-          }
-          setScore(initialScore)
-          setHistory([initialScore])
+        } catch {
+          const initial = createInitialScore()
+          setScore(initial)
+          setHistory([initial])
         }
       } else {
-        const initialScore = {
-          player1: { sets: [0], currentSet: 0, currentGame: 0 },
-          player2: { sets: [0], currentSet: 0, currentGame: 0 },
-          currentSetIndex: 0,
-          matchComplete: false,
-          winner: null,
-        }
-        setScore(initialScore)
-        setHistory([initialScore])
+        const initial = createInitialScore()
+        setScore(initial)
+        setHistory([initial])
       }
     }
   }, [open, matchId])
@@ -106,54 +105,83 @@ export function ScoreTracker({
 
   const addPoint = (player: "player1" | "player2") => {
     if (score.matchComplete) return
-
     setHistory((prev) => [...prev, score])
 
     setScore((prevScore) => {
-      const newScore = { ...prevScore }
+      const newScore = JSON.parse(JSON.stringify(prevScore)) as ScoreState
       const currentPlayer = newScore[player]
       const opponent = newScore[player === "player1" ? "player2" : "player1"]
 
-      currentPlayer.currentGame++
+      if (isPickleball) {
+        // Pickleball: rally scoring to 11, win by 2
+        currentPlayer.sets[newScore.currentSetIndex]++
+        const p1Pts = newScore.player1.sets[newScore.currentSetIndex]
+        const p2Pts = newScore.player2.sets[newScore.currentSetIndex]
 
-      if (currentPlayer.currentGame >= 4) {
-        if (opponent.currentGame <= 2) {
-          currentPlayer.sets[newScore.currentSetIndex]++
-          currentPlayer.currentGame = 0
-          opponent.currentGame = 0
-        } else if (currentPlayer.currentGame - opponent.currentGame >= 2) {
-          currentPlayer.sets[newScore.currentSetIndex]++
-          currentPlayer.currentGame = 0
-          opponent.currentGame = 0
+        if ((p1Pts >= 11 || p2Pts >= 11) && Math.abs(p1Pts - p2Pts) >= 2) {
+          // Game/set won
+          newScore.player1.sets.push(0)
+          newScore.player2.sets.push(0)
+          newScore.currentSetIndex++
+
+          // Check match winner (best of 3 games)
+          let p1Wins = 0
+          let p2Wins = 0
+          for (let i = 0; i < newScore.currentSetIndex; i++) {
+            if (newScore.player1.sets[i] > newScore.player2.sets[i]) p1Wins++
+            else p2Wins++
+          }
+          if (p1Wins >= config.setsToWin) {
+            newScore.matchComplete = true
+            newScore.winner = "player1"
+          } else if (p2Wins >= config.setsToWin) {
+            newScore.matchComplete = true
+            newScore.winner = "player2"
+          }
         }
-      }
+      } else {
+        // Tennis / Padel: traditional scoring (15-30-40-AD, games, sets)
+        currentPlayer.currentGame++
 
-      const p1Games = newScore.player1.sets[newScore.currentSetIndex]
-      const p2Games = newScore.player2.sets[newScore.currentSetIndex]
+        if (currentPlayer.currentGame >= 4) {
+          if (opponent.currentGame <= 2) {
+            currentPlayer.sets[newScore.currentSetIndex]++
+            currentPlayer.currentGame = 0
+            opponent.currentGame = 0
+          } else if (currentPlayer.currentGame - opponent.currentGame >= 2) {
+            currentPlayer.sets[newScore.currentSetIndex]++
+            currentPlayer.currentGame = 0
+            opponent.currentGame = 0
+          }
+        }
 
-      if ((p1Games >= 6 && p1Games - p2Games >= 2) || p1Games === 7) {
-        newScore.player1.sets.push(0)
-        newScore.player2.sets.push(0)
-        newScore.currentSetIndex++
-      } else if ((p2Games >= 6 && p2Games - p1Games >= 2) || p2Games === 7) {
-        newScore.player1.sets.push(0)
-        newScore.player2.sets.push(0)
-        newScore.currentSetIndex++
-      }
+        const p1Games = newScore.player1.sets[newScore.currentSetIndex]
+        const p2Games = newScore.player2.sets[newScore.currentSetIndex]
 
-      const p1SetsWon = newScore.player1.sets
-        .slice(0, -1)
-        .filter((s) => s > newScore.player2.sets[newScore.player1.sets.indexOf(s)]).length
-      const p2SetsWon = newScore.player2.sets
-        .slice(0, -1)
-        .filter((s) => s > newScore.player1.sets[newScore.player2.sets.indexOf(s)]).length
+        if ((p1Games >= 6 && p1Games - p2Games >= 2) || p1Games === 7) {
+          newScore.player1.sets.push(0)
+          newScore.player2.sets.push(0)
+          newScore.currentSetIndex++
+        } else if ((p2Games >= 6 && p2Games - p1Games >= 2) || p2Games === 7) {
+          newScore.player1.sets.push(0)
+          newScore.player2.sets.push(0)
+          newScore.currentSetIndex++
+        }
 
-      if (p1SetsWon >= 2) {
-        newScore.matchComplete = true
-        newScore.winner = "player1"
-      } else if (p2SetsWon >= 2) {
-        newScore.matchComplete = true
-        newScore.winner = "player2"
+        let p1SetsWon = 0
+        let p2SetsWon = 0
+        for (let i = 0; i < newScore.currentSetIndex; i++) {
+          if (newScore.player1.sets[i] > newScore.player2.sets[i]) p1SetsWon++
+          else p2SetsWon++
+        }
+
+        if (p1SetsWon >= config.setsToWin) {
+          newScore.matchComplete = true
+          newScore.winner = "player1"
+        } else if (p2SetsWon >= config.setsToWin) {
+          newScore.matchComplete = true
+          newScore.winner = "player2"
+        }
       }
 
       return newScore
@@ -169,30 +197,23 @@ export function ScoreTracker({
   }
 
   const resetMatch = () => {
-    const initialScore = {
-      player1: { sets: [0], currentSet: 0, currentGame: 0 },
-      player2: { sets: [0], currentSet: 0, currentGame: 0 },
-      currentSetIndex: 0,
-      matchComplete: false,
-      winner: null,
-    }
-    setScore(initialScore)
-    setHistory([initialScore])
+    const initial = createInitialScore()
+    setScore(initial)
+    setHistory([initial])
   }
 
   const formatGameScore = (gameScore: number) => {
-    if (gameScore >= 4) {
-      return gameScore === 4 ? "AD" : "40"
-    }
+    if (isPickleball) return gameScore.toString()
+    if (gameScore >= 4) return gameScore === 4 ? "AD" : "40"
     return TENNIS_SCORES[gameScore] || "0"
   }
 
   const formatFinalScore = () => {
     const completedSets = score.player1.sets.slice(0, -1)
     return completedSets
-      .map((p1Games, index) => {
-        const p2Games = score.player2.sets[index]
-        return `${p1Games}-${p2Games}`
+      .map((p1Val, index) => {
+        const p2Val = score.player2.sets[index]
+        return `${p1Val}-${p2Val}`
       })
       .join(", ")
   }
@@ -200,22 +221,14 @@ export function ScoreTracker({
   const handleSaveMatch = async () => {
     if (score.matchComplete && score.winner) {
       setIsSaving(true)
-
       try {
         const finalScore = formatFinalScore()
-        const winner = score.winner
-
-        onSaveScore(matchId, finalScore, winner)
-
+        onSaveScore(matchId, finalScore, score.winner)
         localStorage.removeItem(MATCH_PROGRESS_KEY)
-
         await new Promise((resolve) => setTimeout(resolve, 100))
-
         onOpenChange(false)
-
         setIsSaving(false)
-      } catch (error) {
-        console.error("[v0] Error saving match:", error)
+      } catch {
         setIsSaving(false)
       }
     }
@@ -227,15 +240,21 @@ export function ScoreTracker({
         <DialogHeader>
           <DialogTitle className="font-serif text-xl">Live Score Tracking</DialogTitle>
           <DialogDescription>
-            Track the live score for your tennis match. Tap the + buttons to add points.
+            {isPickleball
+              ? "Rally scoring to 11 (win by 2), best of 3 games."
+              : `Track the live score for your ${config.label.toLowerCase()} match. Best of 3 sets.`}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-6">
-          {/* Current Game Score */}
+          {/* Current Score */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-center font-serif">Current Game</CardTitle>
+              <CardTitle className="text-center font-serif">
+                {isPickleball
+                  ? `Game ${score.currentSetIndex + 1}`
+                  : "Current Game"}
+              </CardTitle>
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-3 gap-4 items-center">
@@ -250,7 +269,11 @@ export function ScoreTracker({
                     </AvatarFallback>
                   </Avatar>
                   <p className="font-semibold text-sm mb-2">{player1Name}</p>
-                  <div className="text-4xl font-bold font-mono mb-2">{formatGameScore(score.player1.currentGame)}</div>
+                  <div className="text-4xl font-bold font-mono mb-2">
+                    {isPickleball
+                      ? score.player1.sets[score.currentSetIndex]
+                      : formatGameScore(score.player1.currentGame)}
+                  </div>
                   <Button
                     size="sm"
                     onClick={() => addPoint("player1")}
@@ -278,7 +301,11 @@ export function ScoreTracker({
                     </AvatarFallback>
                   </Avatar>
                   <p className="font-semibold text-sm mb-2">{player2Name}</p>
-                  <div className="text-4xl font-bold font-mono mb-2">{formatGameScore(score.player2.currentGame)}</div>
+                  <div className="text-4xl font-bold font-mono mb-2">
+                    {isPickleball
+                      ? score.player2.sets[score.currentSetIndex]
+                      : formatGameScore(score.player2.currentGame)}
+                  </div>
                   <Button
                     size="sm"
                     onClick={() => addPoint("player2")}
@@ -293,35 +320,57 @@ export function ScoreTracker({
             </CardContent>
           </Card>
 
-          {/* Set Scores */}
+          {/* Set / Game Scores */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-center font-serif">Set Scores</CardTitle>
+              <CardTitle className="text-center font-serif">
+                {isPickleball ? "Game Scores" : "Set Scores"}
+              </CardTitle>
             </CardHeader>
             <CardContent className="max-h-[200px] overflow-y-auto">
-              {score.player1.sets.map((p1Games, setIndex) => {
-                const p2Games = score.player2.sets[setIndex] || 0
-                const isCurrentSet = setIndex === score.currentSetIndex
-                const isCompletedSet = setIndex < score.currentSetIndex
+              <div className="space-y-2">
+                {score.player1.sets.map((p1Val, setIndex) => {
+                  const p2Val = score.player2.sets[setIndex] || 0
+                  const isCurrentSet = setIndex === score.currentSetIndex
+                  const isCompletedSet = setIndex < score.currentSetIndex
 
-                return (
-                  <div key={setIndex} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-4">
-                      <Badge variant={isCurrentSet ? "default" : "secondary"}>Set {setIndex + 1}</Badge>
-                      {isCurrentSet && <Badge variant="outline">Current</Badge>}
+                  return (
+                    <div key={setIndex} className="flex items-center justify-between p-3 rounded-lg bg-muted/50">
+                      <div className="flex items-center gap-4">
+                        <Badge variant={isCurrentSet ? "default" : "secondary"}>
+                          {isPickleball ? `Game ${setIndex + 1}` : `Set ${setIndex + 1}`}
+                        </Badge>
+                        {isCurrentSet && !score.matchComplete && <Badge variant="outline">Current</Badge>}
+                      </div>
+                      <div className="flex items-center gap-8 font-mono text-lg font-semibold">
+                        <span className={p1Val > p2Val && isCompletedSet ? "text-primary" : ""}>{p1Val}</span>
+                        <span>-</span>
+                        <span className={p2Val > p1Val && isCompletedSet ? "text-primary" : ""}>{p2Val}</span>
+                      </div>
                     </div>
-                    <div className="flex items-center gap-8 font-mono text-lg font-semibold">
-                      <span className={p1Games > p2Games && isCompletedSet ? "text-primary" : ""}>{p1Games}</span>
-                      <span>-</span>
-                      <span className={p2Games > p1Games && isCompletedSet ? "text-primary" : ""}>{p2Games}</span>
-                    </div>
-                  </div>
-                )
-              })}
+                  )
+                })}
+              </div>
             </CardContent>
           </Card>
 
-          {/* Match Status */}
+          {/* Tennis/Padel: Show current set games alongside game score */}
+          {!isPickleball && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-center font-serif">Games in Current Set</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center justify-center gap-8 font-mono text-2xl font-bold">
+                  <span>{score.player1.sets[score.currentSetIndex]}</span>
+                  <span className="text-muted-foreground">-</span>
+                  <span>{score.player2.sets[score.currentSetIndex]}</span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Match Complete */}
           {score.matchComplete && (
             <Card className="border-primary">
               <CardContent className="p-6 text-center">
