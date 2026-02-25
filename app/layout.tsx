@@ -17,7 +17,7 @@ const openSans = Open_Sans({
 
 export const metadata: Metadata = {
   title: "Set Point",
-  description: "Your ultimate tennis organizer - organize matches with friends, track scores, and send reminders",
+  description: "Your ultimate racket sports organizer - tennis, pickleball, and padel. Organize matches, run tournaments, track scores, and play with friends.",
   generator: "v0.app",
 }
 

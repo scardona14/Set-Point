@@ -108,19 +108,36 @@ export default function TennisMatchOrganizer() {
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null)
 
   useEffect(() => {
+    // Auto-login: check for existing user or create a default one
     const savedUserId = localStorage.getItem(CURRENT_USER_KEY)
     if (savedUserId) {
       const users = getAllUsers()
       const user = users.find((u) => u.id === savedUserId)
       if (user) {
         setCurrentUser(user)
-        // Load user's matches
         const userData = getUserData(savedUserId)
         if (userData?.matches) {
           setMatches(userData.matches)
         }
+        return
       }
     }
+
+    // No saved user found — create a default guest user and go straight to dashboard
+    const guestUser: User = {
+      id: "guest_" + Date.now().toString(),
+      name: "Player",
+      email: "player@setpoint.app",
+      skillLevel: "intermediate",
+      joinDate: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      bio: "",
+      location: "",
+    }
+    saveUser(guestUser)
+    localStorage.setItem(CURRENT_USER_KEY, guestUser.id)
+    saveUserData(guestUser.id, { matches: [], friends: [], notifications: [] })
+    setCurrentUser(guestUser)
+    setMatches([])
   }, [])
 
   const handleAuth = async (e: React.FormEvent) => {
@@ -282,7 +299,6 @@ export default function TennisMatchOrganizer() {
         time: "15:00",
         location: "City Sports Complex",
         status: "upcoming",
-        sport: selectedSport,
       }
       setMatches((prev) => [newMatch, ...prev])
     }
@@ -328,91 +344,14 @@ export default function TennisMatchOrganizer() {
     padel: { name: "Padel", icon: "🎾" },
   }
 
+  // Show a loading state while the guest user is being created
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Card className="w-full max-w-md">
-          <CardHeader className="text-center">
-            <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
-              <Image
-                src="/tennis-ball-realistic.png"
-                alt="Set Point Logo"
-                width={64}
-                height={64}
-                className="rounded-full"
-              />
-            </div>
-            <CardTitle className="font-serif text-2xl">Set Point</CardTitle>
-            <CardDescription>
-              Your ultimate racket sports organizer - tennis, pickleball, and padel. Organize matches, track scores, and
-              stay connected.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            {authError && (
-              <Alert className="mb-4 border-red-200 bg-red-50 text-red-800">
-                <AlertDescription>{authError}</AlertDescription>
-              </Alert>
-            )}
-            <Tabs value={isSignUp ? "signup" : "signin"} className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger
-                  value="signin"
-                  onClick={() => {
-                    setIsSignUp(false)
-                    setAuthError("")
-                  }}
-                >
-                  Sign In
-                </TabsTrigger>
-                <TabsTrigger
-                  value="signup"
-                  onClick={() => {
-                    setIsSignUp(true)
-                    setAuthError("")
-                  }}
-                >
-                  Sign Up
-                </TabsTrigger>
-              </TabsList>
-              <TabsContent value="signin">
-                <form onSubmit={handleAuth} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" placeholder="your@email.com" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="password">Password</Label>
-                    <Input id="password" name="password" type="password" required />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Signing In..." : "Sign In"}
-                  </Button>
-                </form>
-              </TabsContent>
-              <TabsContent value="signup">
-                <form onSubmit={handleAuth} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" name="name" placeholder="John Doe" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-email">Email</Label>
-                    <Input id="signup-email" name="email" type="email" placeholder="your@email.com" required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="signup-password">Password</Label>
-                    <Input id="signup-password" name="password" type="password" minLength={6} required />
-                    <p className="text-xs text-muted-foreground">Password must be at least 6 characters</p>
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Creating Account..." : "Create Account"}
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
-          </CardContent>
-        </Card>
+        <div className="text-center space-y-4">
+          <Image src="/tennis-ball-realistic.png" alt="Set Point Logo" width={64} height={64} className="mx-auto rounded-full animate-pulse" />
+          <p className="text-muted-foreground">Loading Set Point...</p>
+        </div>
       </div>
     )
   }
