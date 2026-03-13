@@ -18,7 +18,6 @@ const openSans = Open_Sans({
 export const metadata: Metadata = {
   title: "Set Point",
   description: "Your ultimate tennis organizer - organize matches with friends, track scores, and send reminders",
-  generator: "v0.app",
 }
 
 export default function RootLayout({
