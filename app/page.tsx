@@ -56,6 +56,35 @@ interface User {
   bio?: string
   location?: string
   joinDate?: string
+  skills?: {
+    serve: number
+    forehand: number
+    backhand: number
+    netPlay: number
+  }
+  friends?: string[]
+  matchInvites?: string[]
+}
+
+const getMatchCultureLabels = (score?: string) => {
+  if (!score) return []
+  const sets = score.split(",").map(s => s.trim())
+  const labels: string[] = []
+  
+  let bagels = 0
+  let breadsticks = 0
+  
+  sets.forEach(set => {
+    if (set === "6-0" || set === "0-6") bagels++
+    if (set === "6-1" || set === "1-6") breadsticks++
+  })
+  
+  if (bagels >= 2) labels.push("Double Bagel 🥯🥯")
+  else if (bagels === 1) labels.push("Bagel 🥯")
+  
+  if (breadsticks > 0) labels.push("Breadstick 🥖")
+  
+  return labels
 }
 
 const USERS_STORAGE_KEY = "setpoint_users"
@@ -106,6 +135,13 @@ export default function TennisMatchOrganizer() {
   const [authError, setAuthError] = useState<string>("")
   const [isLoading, setIsLoading] = useState(false)
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null)
+
+  // New Feature States
+  const [discoveryPlayers] = useState([
+    { id: "1", name: "Carlos R.", distance: "2.1 mi", winRate: "68%", avatar: "CR" },
+    { id: "2", name: "Maria V.", distance: "3.5 mi", winRate: "54%", avatar: "MV" },
+    { id: "3", name: "David S.", distance: "5.0 mi", winRate: "72%", avatar: "DS" }
+  ])
 
   useEffect(() => {
     // Auto-login: check for existing user or create a default one
@@ -176,7 +212,15 @@ export default function TennisMatchOrganizer() {
           skillLevel: "intermediate",
           joinDate: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
           bio: "",
-          location: "",
+          location: "San Juan, PR",
+          friends: [],
+          matchInvites: [],
+          skills: {
+            serve: 0,
+            forehand: 0,
+            backhand: 0,
+            netPlay: 0
+          }
         }
 
         saveUser(newUser)
@@ -364,16 +408,27 @@ export default function TennisMatchOrganizer() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center">
+              <div className="flex h-10 w-10 mt-1 items-center justify-center">
                 <Image
-                  src="/tennis-ball-realistic.png"
+                  src="/apple-icon.png"
                   alt="Set Point Logo"
                   width={40}
                   height={40}
-                  className="rounded-full"
+                  className="rounded-full shadow-[0_0_10px_rgba(204,255,0,0.4)]"
                 />
               </div>
-              <h1 className="font-serif text-xl font-bold">Set Point</h1>
+              <div>
+                <h1 className="font-serif text-2xl font-bold tracking-wide">
+                  {getGreeting()}, {currentUser.name.split(' ')[0]}
+                </h1>
+                {winStreak > 0 ? (
+                  <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30 mt-1 font-serif tracking-widest">
+                    WIN STREAK ACTIVE · {winStreak} MATCH{winStreak !== 1 ? 'ES' : ''}
+                  </Badge>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1 font-serif tracking-widest">GET BACK ON THE COURT</p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-1 rounded-lg border border-border/50 bg-muted/30 p-1">
               {(["tennis", "pickleball", "padel"] as Sport[]).map((sport) => (
@@ -392,11 +447,14 @@ export default function TennisMatchOrganizer() {
               ))}
             </div>
             <div className="flex items-center gap-4">
-              <NotificationCenter
-                currentUserId={currentUser.id}
-                onFriendRequestAction={handleFriendRequestAction}
-                onMatchInvitationAction={handleMatchInvitationAction}
-              />
+              <div className="relative">
+                <NotificationCenter
+                  currentUserId={currentUser.id}
+                  onFriendRequestAction={handleFriendRequestAction}
+                  onMatchInvitationAction={handleMatchInvitationAction}
+                />
+                <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(0,240,255,0.8)] border border-background"></span>
+              </div>
               <UserProfileMenu user={currentUser} onLogout={handleLogout} onUpdateProfile={handleUpdateProfile} />
             </div>
           </div>
@@ -445,7 +503,7 @@ export default function TennisMatchOrganizer() {
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-b-4 border-b-primary bg-primary/5">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
                 <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
@@ -465,10 +523,10 @@ export default function TennisMatchOrganizer() {
           {/* Matches List */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="matches" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="matches">Matches</TabsTrigger>
-                <TabsTrigger value="tournaments">Tournaments</TabsTrigger>
-                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1">
+                <TabsTrigger value="matches" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase">Matches</TabsTrigger>
+                <TabsTrigger value="tournaments" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase">Tournaments</TabsTrigger>
+                <TabsTrigger value="analytics" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase">Analytics</TabsTrigger>
               </TabsList>
 
               <TabsContent value="matches" className="space-y-6">
@@ -560,7 +618,7 @@ export default function TennisMatchOrganizer() {
                           .filter((m) => m.status === "completed")
                           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                           .map((match) => (
-                            <Card key={match.id} className="hover:shadow-md transition-shadow">
+                            <Card key={match.id} className="hover:shadow-[0_4px_20px_rgba(0,240,255,0.1)] hover:border-primary/50 transition-all cursor-pointer bg-card">
                               <CardContent className="p-6">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-4">
@@ -591,7 +649,18 @@ export default function TennisMatchOrganizer() {
                                       Completed
                                     </Badge>
                                     {match.score && (
-                                      <p className="text-lg font-mono font-semibold text-primary">{match.score}</p>
+                                      <div className="flex gap-1 mt-1">
+                                        {match.score.split(',').map((set, i) => (
+                                          <Badge key={i} variant="secondary" className="text-sm bg-primary/20 text-primary border-primary/30 font-serif tracking-wider">
+                                            {set.trim()}
+                                          </Badge>
+                                        ))}
+                                        {getMatchCultureLabels(match.score).map((label, i) => (
+                                          <Badge key={`label-${i}`} variant="default" className="text-sm bg-secondary text-primary font-serif tracking-wider border-primary/50">
+                                            {label}
+                                          </Badge>
+                                        ))}
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -664,7 +733,20 @@ export default function TennisMatchOrganizer() {
                                   >
                                     {match.status.replace("-", " ")}
                                   </Badge>
-                                  {match.score && <p className="text-sm font-mono font-semibold">{match.score}</p>}
+                                  {match.score && (
+                                    <div className="flex gap-1 flex-wrap">
+                                      {match.score.split(',').map((set, i) => (
+                                        <Badge key={i} variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30 font-serif tracking-wider">
+                                          {set.trim()}
+                                        </Badge>
+                                      ))}
+                                      {getMatchCultureLabels(match.score).map((label, i) => (
+                                        <Badge key={`label-${i}`} variant="default" className="text-xs bg-secondary text-primary font-serif tracking-wider border-primary/50">
+                                          {label}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  )}
                                   <div className="flex items-center gap-2">
                                     {(match.status === "upcoming" || match.status === "in-progress") && (
                                       <Button
@@ -1037,7 +1119,7 @@ export default function TennisMatchOrganizer() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start bg-transparent"
+                  className="w-full justify-start bg-transparent hover:border-primary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => {
                     const upcomingMatch = sportMatches.find((m) => m.status === "upcoming" || m.status === "in-progress")
                     if (upcomingMatch) {
@@ -1047,16 +1129,47 @@ export default function TennisMatchOrganizer() {
                   disabled={!sportMatches.some((m) => m.status === "upcoming" || m.status === "in-progress")}
                 >
                   <Trophy className="h-4 w-4 mr-2" />
-                  Track Score
+                  {matches.some((m) => m.status === "upcoming" || m.status === "in-progress") ? "Track Score" : "No Active Match to Track"}
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start bg-transparent"
+                  className="w-full justify-start bg-transparent hover:border-primary hover:text-primary transition-colors"
                   onClick={() => setShowFriendsManager(true)}
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Manage Friends
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Find Players (Discovery) */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="font-serif text-lg flex justify-between items-center">
+                  Find Players
+                  <Badge variant="outline" className="text-xs bg-secondary border-secondary/50 flex gap-1 items-center">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
+                    Nearby
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {discoveryPlayers.map(player => (
+                  <div key={player.id} className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/50 hover:border-primary/30 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs">{player.avatar}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-semibold text-sm leading-none">{player.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{player.distance} • {player.winRate} win rate</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10">
+                      Challenge
+                    </Button>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
@@ -1070,19 +1183,87 @@ export default function TennisMatchOrganizer() {
                     .filter((m) => m.status === "completed")
                     .slice(0, 3)
                     .map((match, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <p className="text-muted-foreground">
-                          vs <span className="font-semibold">{match.opponent}</span>
+                      <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer border border-transparent hover:border-border">
+                        <p className="text-muted-foreground font-serif tracking-wide">
+                          VS <span className="font-sans font-semibold text-foreground">{match.opponent}</span>
                         </p>
-                        <Badge variant="outline" className="text-xs">
-                          {match.score}
-                        </Badge>
+                        <div className="flex gap-1">
+                          {match.score ? match.score.split(',').map((set, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
+                              {set.trim()}
+                            </Badge>
+                          )) : (
+                            <Badge variant="outline" className="text-xs">TBD</Badge>
+                          )}
+                        </div>
                       </div>
                     ))}
                   {sportMatches.filter((m) => m.status === "completed").length === 0 && (
                     <p className="text-muted-foreground">No recent matches completed</p>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 shadow-[0_4px_20px_rgba(204,255,0,0.05)]">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-serif flex items-center justify-between">
+                  My Game 
+                  <Badge variant="outline" className="font-mono text-primary border-primary/30">
+                    Est. UTR: {
+                      currentUser?.skills && Object.values(currentUser.skills).some(v => v > 0)
+                      ? (Object.values(currentUser.skills).reduce((a, b) => a + b, 0) / 4).toFixed(1)
+                      : "N/A"
+                    }
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-2">
+                {(!currentUser?.skills || Object.values(currentUser.skills).every(v => v === 0)) ? (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-muted-foreground italic mb-2">No skill data available yet.</p>
+                    <p className="text-xs text-primary/80">Add more matches to improve accuracy.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium">Serve</span>
+                        <span className="font-mono">{currentUser.skills.serve}/10</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${(currentUser.skills.serve / 10) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium">Forehand</span>
+                        <span className="font-mono">{currentUser.skills.forehand}/10</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${(currentUser.skills.forehand / 10) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium">Backhand</span>
+                        <span className="font-mono">{currentUser.skills.backhand}/10</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${(currentUser.skills.backhand / 10) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium">Net Play</span>
+                        <span className="font-mono">{currentUser.skills.netPlay}/10</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${(currentUser.skills.netPlay / 10) * 100}%` }}></div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
