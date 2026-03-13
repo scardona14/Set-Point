@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { CalendarDays, Users, Trophy, Plus, MapPin, Clock, Play, Trash2 } from "lucide-react"
+import { CalendarDays, Users, Trophy, Plus, MapPin, Clock, Play, Trash2, Cloud, Sun, CloudRain, Wind } from "lucide-react"
 import { CreateMatchDialog } from "@/components/create-match-dialog"
 import { ScoreTracker } from "@/components/score-tracker"
 import { FriendsManager } from "@/components/friends-manager"
@@ -52,6 +52,35 @@ interface User {
   bio?: string
   location?: string
   joinDate?: string
+  skills?: {
+    serve: number
+    forehand: number
+    backhand: number
+    netPlay: number
+  }
+  friends?: string[]
+  matchInvites?: string[]
+}
+
+const getMatchCultureLabels = (score?: string) => {
+  if (!score) return []
+  const sets = score.split(",").map(s => s.trim())
+  const labels: string[] = []
+  
+  let bagels = 0
+  let breadsticks = 0
+  
+  sets.forEach(set => {
+    if (set === "6-0" || set === "0-6") bagels++
+    if (set === "6-1" || set === "1-6") breadsticks++
+  })
+  
+  if (bagels >= 2) labels.push("Double Bagel 🥯🥯")
+  else if (bagels === 1) labels.push("Bagel 🥯")
+  
+  if (breadsticks > 0) labels.push("Breadstick 🥖")
+  
+  return labels
 }
 
 const USERS_STORAGE_KEY = "setpoint_users"
@@ -102,6 +131,20 @@ export default function TennisMatchOrganizer() {
   const [isLoading, setIsLoading] = useState(false)
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null)
 
+  // New Feature States
+  const [weeklyChallenge, setWeeklyChallenge] = useState({
+    title: "Play 3 matches this week",
+    target: 3,
+    progress: 0,
+    completed: false
+  })
+
+  const [discoveryPlayers] = useState([
+    { id: "1", name: "Carlos R.", distance: "2.1 mi", winRate: "68%", avatar: "CR" },
+    { id: "2", name: "Maria V.", distance: "3.5 mi", winRate: "54%", avatar: "MV" },
+    { id: "3", name: "David S.", distance: "5.0 mi", winRate: "72%", avatar: "DS" }
+  ])
+
   useEffect(() => {
     const savedUserId = localStorage.getItem(CURRENT_USER_KEY)
     if (savedUserId) {
@@ -113,6 +156,13 @@ export default function TennisMatchOrganizer() {
         const userData = getUserData(savedUserId)
         if (userData?.matches) {
           setMatches(userData.matches)
+          
+          const currentWeekMatches = userData.matches.filter((m: Match) => m.status === 'completed').length
+          setWeeklyChallenge(prev => ({
+            ...prev,
+            progress: Math.min(currentWeekMatches, prev.target),
+            completed: currentWeekMatches >= prev.target
+          }))
         }
       }
     }
@@ -154,7 +204,15 @@ export default function TennisMatchOrganizer() {
           skillLevel: "intermediate",
           joinDate: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
           bio: "",
-          location: "",
+          location: "San Juan, PR",
+          friends: [],
+          matchInvites: [],
+          skills: {
+            serve: 0,
+            forehand: 0,
+            backhand: 0,
+            netPlay: 0
+          }
         }
 
         saveUser(newUser)
@@ -313,6 +371,56 @@ export default function TennisMatchOrganizer() {
 
   const matchStats = getMatchStats()
 
+  const getWinStreak = () => {
+    let streak = 0
+    const completedMatches = matches
+      .filter((m) => m.status === "completed")
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+
+    for (const match of completedMatches) {
+      if (match.score && match.score.includes("6-")) {
+        streak++
+      } else {
+        break // Streak broken
+      }
+    }
+    return streak
+  }
+  
+  const winStreak = getWinStreak()
+
+  const getGreeting = () => {
+    const hour = new Date().getHours()
+    if (hour < 12) return "Good morning"
+    if (hour < 18) return "Good afternoon"
+    return "Good evening"
+  }
+
+  const [weatherData, setWeatherData] = useState<{temp: number, condition: string, playability: string, isLoaded: boolean}>({
+    temp: 0,
+    condition: "",
+    playability: "",
+    isLoaded: false
+  })
+
+  // Basic weather stub based on location string containing "PR"
+  useEffect(() => {
+    const loc = currentUser?.location || ""
+    if (loc) {
+      // Fake a weather API delay
+      setTimeout(() => {
+        const isTropical = loc.includes("PR") || loc.includes("FL")
+        
+        setWeatherData({
+          temp: isTropical ? 84 : 68,
+          condition: isTropical ? "Sunny" : "Partly Cloudy",
+          playability: "Play ball",
+          isLoaded: true
+        })
+      }, 800)
+    }
+  }, [currentUser?.location])
+
   if (!currentUser) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
@@ -408,16 +516,27 @@ export default function TennisMatchOrganizer() {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <div className="flex h-10 w-10 items-center justify-center">
+              <div className="flex h-10 w-10 mt-1 items-center justify-center">
                 <Image
-                  src="/tennis-ball-realistic.png"
+                  src="/apple-icon.png"
                   alt="Set Point Logo"
                   width={40}
                   height={40}
-                  className="rounded-full"
+                  className="rounded-full shadow-[0_0_10px_rgba(204,255,0,0.4)]"
                 />
               </div>
-              <h1 className="font-serif text-xl font-bold">Set Point</h1>
+              <div>
+                <h1 className="font-serif text-2xl font-bold tracking-wide">
+                  {getGreeting()}, {currentUser.name.split(' ')[0]}
+                </h1>
+                {winStreak > 0 ? (
+                  <Badge variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30 mt-1 font-serif tracking-widest">
+                    WIN STREAK ACTIVE · {winStreak} MATCH{winStreak !== 1 ? 'ES' : ''}
+                  </Badge>
+                ) : (
+                  <p className="text-xs text-muted-foreground mt-1 font-serif tracking-widest">GET BACK ON THE COURT</p>
+                )}
+              </div>
             </div>
             <div className="flex items-center gap-4">
               <div className="relative">
@@ -627,6 +746,11 @@ export default function TennisMatchOrganizer() {
                                             {set.trim()}
                                           </Badge>
                                         ))}
+                                        {getMatchCultureLabels(match.score).map((label, i) => (
+                                          <Badge key={`label-${i}`} variant="default" className="text-sm bg-secondary text-primary font-serif tracking-wider border-primary/50">
+                                            {label}
+                                          </Badge>
+                                        ))}
                                       </div>
                                     )}
                                   </div>
@@ -700,10 +824,15 @@ export default function TennisMatchOrganizer() {
                                     {match.status.replace("-", " ")}
                                   </Badge>
                                   {match.score && (
-                                    <div className="flex gap-1">
+                                    <div className="flex gap-1 flex-wrap">
                                       {match.score.split(',').map((set, i) => (
                                         <Badge key={i} variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30 font-serif tracking-wider">
                                           {set.trim()}
+                                        </Badge>
+                                      ))}
+                                      {getMatchCultureLabels(match.score).map((label, i) => (
+                                        <Badge key={`label-${i}`} variant="default" className="text-xs bg-secondary text-primary font-serif tracking-wider border-primary/50">
+                                          {label}
                                         </Badge>
                                       ))}
                                     </div>
@@ -1071,6 +1200,56 @@ export default function TennisMatchOrganizer() {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            <Card className="border-primary/20 bg-card overflow-hidden">
+              <div className="bg-primary/10 px-4 py-2 border-b border-primary/20 flex items-center justify-between">
+                <span className="font-serif text-sm tracking-wider uppercase flex items-center gap-1">
+                  <MapPin className="h-3 w-3" /> {currentUser.location || "Local Courts"}
+                </span>
+                <span className="text-xs text-muted-foreground">COURT WEATHER</span>
+              </div>
+              <CardContent className="p-4">
+                {!weatherData.isLoaded ? (
+                  <div className="animate-pulse flex space-x-4 items-center">
+                    <div className="rounded-full bg-muted h-10 w-10"></div>
+                    <div className="flex-1 space-y-2">
+                      <div className="h-4 bg-muted rounded w-3/4"></div>
+                      <div className="h-3 bg-muted rounded w-1/2"></div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      {weatherData.condition === "Sunny" ? (
+                        <Sun className="h-8 w-8 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
+                      ) : weatherData.condition.includes("Rain") ? (
+                        <CloudRain className="h-8 w-8 text-blue-400" />
+                      ) : (
+                        <Cloud className="h-8 w-8 text-gray-400" />
+                      )}
+                      <div>
+                        <p className="text-2xl font-serif font-bold">{weatherData.temp}°<span className="text-lg text-muted-foreground font-sans">F</span></p>
+                        <p className="text-xs text-muted-foreground">{weatherData.condition}</p>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Badge 
+                        variant="secondary" 
+                        className={`text-xs font-serif tracking-widest ${
+                          weatherData.playability === "Play ball" 
+                            ? "bg-primary/20 text-primary border-primary/30" 
+                            : weatherData.playability === "Rain delay"
+                            ? "bg-destructive/20 text-destructive border-destructive/30"
+                            : "bg-orange-500/20 text-orange-500 border-orange-500/30"
+                        }`}
+                      >
+                        {weatherData.playability.toUpperCase()}
+                      </Badge>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="font-serif">Quick Actions</CardTitle>
@@ -1100,12 +1279,66 @@ export default function TennisMatchOrganizer() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start bg-transparent"
+                  className="w-full justify-start bg-transparent hover:border-primary hover:text-primary transition-colors"
                   onClick={() => setShowFriendsManager(true)}
                 >
                   <Users className="h-4 w-4 mr-2" />
                   Manage Friends
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Weekly Challenge */}
+            <Card className="border-secondary/50 bg-secondary/10">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-serif text-lg">Weekly Challenge</CardTitle>
+                <CardDescription className="text-foreground">{weeklyChallenge.title}</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="flex justify-between text-sm mb-2">
+                  <span>Progress</span>
+                  <span className="font-bold">{weeklyChallenge.progress} / {weeklyChallenge.target}</span>
+                </div>
+                <div className="h-3 bg-muted rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${weeklyChallenge.completed ? 'bg-primary shadow-[0_0_10px_rgba(204,255,0,0.8)]' : 'bg-primary/60'}`} 
+                    style={{ width: `${(weeklyChallenge.progress / weeklyChallenge.target) * 100}%` }}
+                  ></div>
+                </div>
+                {weeklyChallenge.completed && (
+                  <p className="text-xs text-primary mt-2 font-serif tracking-wide uppercase text-center animate-pulse">Challenge Completed! Badge Awarded 🏆</p>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Find Players (Discovery) */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="font-serif text-lg flex justify-between items-center">
+                  Find Players
+                  <Badge variant="outline" className="text-xs bg-secondary border-secondary/50 flex gap-1 items-center">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse"></span>
+                    Nearby
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {discoveryPlayers.map(player => (
+                  <div key={player.id} className="flex items-center justify-between p-2 rounded-lg bg-card border border-border/50 hover:border-primary/30 transition-colors">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback className="bg-primary/10 text-primary text-xs">{player.avatar}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <p className="font-semibold text-sm leading-none">{player.name}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{player.distance} • {player.winRate} win rate</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs text-primary hover:text-primary hover:bg-primary/10">
+                      Challenge
+                    </Button>
+                  </div>
+                ))}
               </CardContent>
             </Card>
 
@@ -1138,6 +1371,68 @@ export default function TennisMatchOrganizer() {
                     <p className="text-muted-foreground">No recent matches completed</p>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/20 shadow-[0_4px_20px_rgba(204,255,0,0.05)]">
+              <CardHeader className="pb-2">
+                <CardTitle className="font-serif flex items-center justify-between">
+                  My Game 
+                  <Badge variant="outline" className="font-mono text-primary border-primary/30">
+                    Est. UTR: {
+                      currentUser?.skills && Object.values(currentUser.skills).some(v => v > 0)
+                      ? (Object.values(currentUser.skills).reduce((a, b) => a + b, 0) / 4).toFixed(1)
+                      : "N/A"
+                    }
+                  </Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4 pt-2">
+                {(!currentUser?.skills || Object.values(currentUser.skills).every(v => v === 0)) ? (
+                  <div className="text-center py-6">
+                    <p className="text-sm text-muted-foreground italic mb-2">No skill data available yet.</p>
+                    <p className="text-xs text-primary/80">Add more matches to improve accuracy.</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium">Serve</span>
+                        <span className="font-mono">{currentUser.skills.serve}/10</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${(currentUser.skills.serve / 10) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium">Forehand</span>
+                        <span className="font-mono">{currentUser.skills.forehand}/10</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${(currentUser.skills.forehand / 10) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium">Backhand</span>
+                        <span className="font-mono">{currentUser.skills.backhand}/10</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${(currentUser.skills.backhand / 10) * 100}%` }}></div>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-xs">
+                        <span className="font-medium">Net Play</span>
+                        <span className="font-mono">{currentUser.skills.netPlay}/10</span>
+                      </div>
+                      <div className="h-2 bg-muted rounded-full overflow-hidden">
+                        <div className="h-full bg-primary" style={{ width: `${(currentUser.skills.netPlay / 10) * 100}%` }}></div>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>

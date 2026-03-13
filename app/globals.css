@@ -4,26 +4,26 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Sports Theme: Navy Base with Teal Accents */
-  --background: #0B1426;
+  /* Sports Theme: Deep Forest Green Base with Electric Lime Accents */
+  --background: #0A1410; /* Very dark rich green-black */
   --foreground: #F8FAFC;
-  --card: #152238;
+  --card: #11221B; /* Dark forest green */
   --card-foreground: #F8FAFC;
-  --popover: #152238;
+  --popover: #11221B;
   --popover-foreground: #F8FAFC;
-  --primary: #00F0FF; /* Glowing Teal */
-  --primary-foreground: #0B1426;
-  --secondary: #1E293B;
+  --primary: #CCFF00; /* Electric Lime */
+  --primary-foreground: #0A1410;
+  --secondary: #173327; /* Mid forest green */
   --secondary-foreground: #F8FAFC;
-  --muted: #1E293B;
+  --muted: #173327;
   --muted-foreground: #94A3B8;
-  --accent: #00F0FF;
-  --accent-foreground: #0B1426;
+  --accent: #CCFF00;
+  --accent-foreground: #0A1410;
   --destructive: #EF4444;
   --destructive-foreground: #F8FAFC;
-  --border: #1E293B;
-  --input: #152238;
-  --ring: rgba(0, 240, 255, 0.5);
+  --border: #173327;
+  --input: #11221B;
+  --ring: rgba(204, 255, 0, 0.5);
   --radius: 0.5rem;
   
   --font-work-sans: "Work Sans", sans-serif;
@@ -31,25 +31,25 @@
 }
 
 .dark {
-  --background: #0B1426;
+  --background: #0A1410;
   --foreground: #F8FAFC;
-  --card: #152238;
+  --card: #11221B;
   --card-foreground: #F8FAFC;
-  --popover: #152238;
+  --popover: #11221B;
   --popover-foreground: #F8FAFC;
-  --primary: #00F0FF; /* Glowing Teal */
-  --primary-foreground: #0B1426;
-  --secondary: #1E293B;
+  --primary: #CCFF00; /* Electric Lime */
+  --primary-foreground: #0A1410;
+  --secondary: #173327;
   --secondary-foreground: #F8FAFC;
-  --muted: #1E293B;
+  --muted: #173327;
   --muted-foreground: #94A3B8;
-  --accent: #00F0FF;
-  --accent-foreground: #0B1426;
+  --accent: #CCFF00;
+  --accent-foreground: #0A1410;
   --destructive: #EF4444;
   --destructive-foreground: #F8FAFC;
-  --border: #1E293B;
-  --input: #152238;
-  --ring: rgba(0, 240, 255, 0.5);
+  --border: #173327;
+  --input: #11221B;
+  --ring: rgba(204, 255, 0, 0.5);
 }
 
 @theme inline {
