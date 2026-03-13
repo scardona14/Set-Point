@@ -87,6 +87,13 @@ const getMatchCultureLabels = (score?: string) => {
   return labels
 }
 
+const getGreeting = () => {
+  const hour = new Date().getHours()
+  if (hour < 12) return "Good morning"
+  if (hour < 17) return "Good afternoon"
+  return "Good evening"
+}
+
 const USERS_STORAGE_KEY = "setpoint_users"
 const CURRENT_USER_KEY = "setpoint_current_user"
 
