@@ -1,7 +1,13 @@
 import type React from "react"
 import type { Metadata } from "next"
-import { Work_Sans, Open_Sans } from "next/font/google"
+import { Work_Sans, Open_Sans, Barlow_Condensed } from "next/font/google"
 import "./globals.css"
+
+const barlowCondensed = Barlow_Condensed({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+  variable: "--font-barlow-condensed",
+})
 
 const workSans = Work_Sans({
   subsets: ["latin"],
@@ -26,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en" className={`${workSans.variable} ${openSans.variable} antialiased`}>
+    <html lang="en" className={`${workSans.variable} ${openSans.variable} ${barlowCondensed.variable} antialiased dark`}>
       <body className="font-sans bg-background text-foreground">{children}</body>
     </html>
   )

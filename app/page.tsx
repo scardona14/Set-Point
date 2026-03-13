@@ -420,11 +420,14 @@ export default function TennisMatchOrganizer() {
               <h1 className="font-serif text-xl font-bold">Set Point</h1>
             </div>
             <div className="flex items-center gap-4">
-              <NotificationCenter
-                currentUserId={currentUser.id}
-                onFriendRequestAction={handleFriendRequestAction}
-                onMatchInvitationAction={handleMatchInvitationAction}
-              />
+              <div className="relative">
+                <NotificationCenter
+                  currentUserId={currentUser.id}
+                  onFriendRequestAction={handleFriendRequestAction}
+                  onMatchInvitationAction={handleMatchInvitationAction}
+                />
+                <span className="absolute top-0 right-0 h-2 w-2 rounded-full bg-primary shadow-[0_0_8px_rgba(0,240,255,0.8)] border border-background"></span>
+              </div>
               <UserProfileMenu user={currentUser} onLogout={handleLogout} onUpdateProfile={handleUpdateProfile} />
             </div>
           </div>
@@ -441,8 +444,8 @@ export default function TennisMatchOrganizer() {
                   <CalendarDays className="h-6 w-6 text-primary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{matches.filter((m) => m.status === "upcoming").length}</p>
-                  <p className="text-sm text-muted-foreground">Upcoming Matches</p>
+                  <p className="text-4xl font-serif font-bold">{matches.filter((m) => m.status === "upcoming").length}</p>
+                  <p className="text-sm font-serif tracking-wider text-muted-foreground uppercase">Upcoming Matches</p>
                 </div>
               </div>
             </CardContent>
@@ -454,8 +457,8 @@ export default function TennisMatchOrganizer() {
                   <Users className="h-6 w-6 text-secondary" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">0</p>
-                  <p className="text-sm text-muted-foreground">Tennis Friends</p>
+                  <p className="text-4xl font-serif font-bold">0</p>
+                  <p className="text-sm font-serif tracking-wider text-muted-foreground uppercase">Tennis Friends</p>
                 </div>
               </div>
             </CardContent>
@@ -467,21 +470,21 @@ export default function TennisMatchOrganizer() {
                   <Trophy className="h-6 w-6 text-accent" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{matches.filter((m) => m.status === "completed").length}</p>
-                  <p className="text-sm text-muted-foreground">Matches Played</p>
+                  <p className="text-4xl font-serif font-bold">{matches.filter((m) => m.status === "completed").length}</p>
+                  <p className="text-sm font-serif tracking-wider text-muted-foreground uppercase">Matches Played</p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          <Card>
+          <Card className="border-b-4 border-b-primary bg-primary/5">
             <CardContent className="p-6">
               <div className="flex items-center gap-4">
-                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
-                  <Trophy className="h-6 w-6 text-green-600 dark:text-green-400" />
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/20">
+                  <Trophy className="h-6 w-6 text-primary drop-shadow-[0_0_8px_rgba(0,240,255,0.8)]" />
                 </div>
                 <div>
-                  <p className="text-2xl font-bold">{matchStats.winRate}%</p>
-                  <p className="text-sm text-muted-foreground">Win Rate</p>
+                  <p className="text-4xl font-serif font-bold text-primary">{matchStats.winRate}%</p>
+                  <p className="text-sm font-serif tracking-wider text-primary/80 uppercase">Win Rate</p>
                 </div>
               </div>
             </CardContent>
@@ -493,10 +496,10 @@ export default function TennisMatchOrganizer() {
           {/* Matches List */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="matches" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="matches">Matches</TabsTrigger>
-                <TabsTrigger value="tournaments">Tournaments</TabsTrigger>
-                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1">
+                <TabsTrigger value="matches" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase">Matches</TabsTrigger>
+                <TabsTrigger value="tournaments" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase">Tournaments</TabsTrigger>
+                <TabsTrigger value="analytics" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase">Analytics</TabsTrigger>
               </TabsList>
 
               <TabsContent value="matches" className="space-y-6">
@@ -587,7 +590,7 @@ export default function TennisMatchOrganizer() {
                           .filter((m) => m.status === "completed")
                           .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
                           .map((match) => (
-                            <Card key={match.id} className="hover:shadow-md transition-shadow">
+                            <Card key={match.id} className="hover:shadow-[0_4px_20px_rgba(0,240,255,0.1)] hover:border-primary/50 transition-all cursor-pointer bg-card">
                               <CardContent className="p-6">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center gap-4">
@@ -618,7 +621,13 @@ export default function TennisMatchOrganizer() {
                                       Completed
                                     </Badge>
                                     {match.score && (
-                                      <p className="text-lg font-mono font-semibold text-primary">{match.score}</p>
+                                      <div className="flex gap-1 mt-1">
+                                        {match.score.split(',').map((set, i) => (
+                                          <Badge key={i} variant="secondary" className="text-sm bg-primary/20 text-primary border-primary/30 font-serif tracking-wider">
+                                            {set.trim()}
+                                          </Badge>
+                                        ))}
+                                      </div>
                                     )}
                                   </div>
                                 </div>
@@ -690,7 +699,15 @@ export default function TennisMatchOrganizer() {
                                   >
                                     {match.status.replace("-", " ")}
                                   </Badge>
-                                  {match.score && <p className="text-sm font-mono font-semibold">{match.score}</p>}
+                                  {match.score && (
+                                    <div className="flex gap-1">
+                                      {match.score.split(',').map((set, i) => (
+                                        <Badge key={i} variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30 font-serif tracking-wider">
+                                          {set.trim()}
+                                        </Badge>
+                                      ))}
+                                    </div>
+                                  )}
                                   <div className="flex items-center gap-2">
                                     {(match.status === "upcoming" || match.status === "in-progress") && (
                                       <Button
@@ -1069,7 +1086,7 @@ export default function TennisMatchOrganizer() {
                 </Button>
                 <Button
                   variant="outline"
-                  className="w-full justify-start bg-transparent"
+                  className="w-full justify-start bg-transparent hover:border-primary hover:text-primary transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   onClick={() => {
                     const upcomingMatch = matches.find((m) => m.status === "upcoming" || m.status === "in-progress")
                     if (upcomingMatch) {
@@ -1079,7 +1096,7 @@ export default function TennisMatchOrganizer() {
                   disabled={!matches.some((m) => m.status === "upcoming" || m.status === "in-progress")}
                 >
                   <Trophy className="h-4 w-4 mr-2" />
-                  Track Score
+                  {matches.some((m) => m.status === "upcoming" || m.status === "in-progress") ? "Track Score" : "No Active Match to Track"}
                 </Button>
                 <Button
                   variant="outline"
@@ -1102,13 +1119,19 @@ export default function TennisMatchOrganizer() {
                     .filter((m) => m.status === "completed")
                     .slice(0, 3)
                     .map((match, index) => (
-                      <div key={index} className="flex items-center justify-between">
-                        <p className="text-muted-foreground">
-                          vs <span className="font-semibold">{match.opponent}</span>
+                      <div key={index} className="flex items-center justify-between p-2 rounded-lg hover:bg-muted/40 transition-colors cursor-pointer border border-transparent hover:border-border">
+                        <p className="text-muted-foreground font-serif tracking-wide">
+                          VS <span className="font-sans font-semibold text-foreground">{match.opponent}</span>
                         </p>
-                        <Badge variant="outline" className="text-xs">
-                          {match.score}
-                        </Badge>
+                        <div className="flex gap-1">
+                          {match.score ? match.score.split(',').map((set, i) => (
+                            <Badge key={i} variant="secondary" className="text-xs bg-primary/20 text-primary border-primary/30">
+                              {set.trim()}
+                            </Badge>
+                          )) : (
+                            <Badge variant="outline" className="text-xs">TBD</Badge>
+                          )}
+                        </div>
                       </div>
                     ))}
                   {matches.filter((m) => m.status === "completed").length === 0 && (
