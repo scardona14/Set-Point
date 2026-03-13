@@ -491,8 +491,8 @@ export default function TennisMatchOrganizer() {
                     <CardContent className="p-8 text-center">
                       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
                         <Image
-                          src="/tennis-ball-realistic.png"
-                          alt="Set Point"
+                          src="/apple-icon.png"
+                          alt="Tennis Ball"
                           width={64}
                           height={64}
                           className="rounded-full"

@@ -24,16 +24,7 @@ const orbitron = Orbitron({
 
 export const metadata: Metadata = {
   title: "Set Point",
-  description:
-    "Your ultimate racket sports organizer - tennis, pickleball, and padel. Organize matches, run tournaments, track scores, and play with friends.",
-    generator: 'v0.app'
-}
-
-export const viewport: Viewport = {
-  themeColor: "#1A1F2E",
-  width: "device-width",
-  initialScale: 1,
-  userScalable: false,
+  description: "Your ultimate tennis organizer - organize matches with friends, track scores, and send reminders",
 }
 
 export default function RootLayout({
