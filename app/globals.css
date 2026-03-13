@@ -4,58 +4,48 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Sports Theme: Deep Forest Green Base with Electric Lime Accents */
-  --background: #0A1410; /* Very dark rich green-black */
-  --foreground: #F8FAFC;
-  --card: #11221B; /* Dark forest green */
-  --card-foreground: #F8FAFC;
-  --popover: #11221B;
-  --popover-foreground: #F8FAFC;
-  --primary: #CCFF00; /* Electric Lime */
-  --primary-foreground: #0A1410;
-  --secondary: #173327; /* Mid forest green */
-  --secondary-foreground: #F8FAFC;
-  --muted: #173327;
-  --muted-foreground: #94A3B8;
-  --accent: #CCFF00;
-  --accent-foreground: #0A1410;
-  --destructive: #EF4444;
-  --destructive-foreground: #F8FAFC;
-  --border: #173327;
-  --input: #11221B;
-  --ring: rgba(204, 255, 0, 0.5);
-  --radius: 0.5rem;
-  
-  --font-work-sans: "Work Sans", sans-serif;
-  --font-open-sans: "Open Sans", sans-serif;
-}
-
-.dark {
-  --background: #0A1410;
-  --foreground: #F8FAFC;
-  --card: #11221B;
-  --card-foreground: #F8FAFC;
-  --popover: #11221B;
-  --popover-foreground: #F8FAFC;
-  --primary: #CCFF00; /* Electric Lime */
-  --primary-foreground: #0A1410;
-  --secondary: #173327;
-  --secondary-foreground: #F8FAFC;
-  --muted: #173327;
-  --muted-foreground: #94A3B8;
-  --accent: #CCFF00;
-  --accent-foreground: #0A1410;
-  --destructive: #EF4444;
-  --destructive-foreground: #F8FAFC;
-  --border: #173327;
-  --input: #11221B;
-  --ring: rgba(204, 255, 0, 0.5);
+  /* Dark athletic palette: Navy #1A1F2E, Yellow #F5C542, Teal #2AC3B5 */
+  --background: oklch(0.16 0.02 260); /* Deep navy #1A1F2E */
+  --foreground: oklch(0.95 0 0); /* White text #F2F2F2 */
+  --card: oklch(0.2 0.02 260); /* Slightly lighter navy #262B3C */
+  --card-foreground: oklch(0.95 0 0); /* White text on cards */
+  --popover: oklch(0.2 0.02 260); /* Card-level navy for popovers */
+  --popover-foreground: oklch(0.95 0 0); /* White popover text */
+  --primary: oklch(0.82 0.14 85); /* Warm yellow accent #F5C542 */
+  --primary-foreground: oklch(0.16 0.02 260); /* Dark navy text on yellow */
+  --secondary: oklch(0.72 0.12 175); /* Teal accent #2AC3B5 */
+  --secondary-foreground: oklch(0.16 0.02 260); /* Dark navy text on teal */
+  --muted: oklch(0.23 0.015 260); /* Muted navy surface */
+  --muted-foreground: oklch(0.68 0.01 260); /* Subdued gray text #A0A6B8 */
+  --accent: oklch(0.72 0.12 175); /* Teal accent */
+  --accent-foreground: oklch(0.16 0.02 260); /* Dark text on accent */
+  --destructive: oklch(0.55 0.22 25); /* Red for destructive actions */
+  --destructive-foreground: oklch(0.95 0 0); /* White text on destructive */
+  --border: oklch(0.28 0.015 260); /* Subtle navy border */
+  --input: oklch(0.23 0.015 260); /* Dark input background */
+  --ring: oklch(0.82 0.14 85 / 0.5); /* Yellow focus ring */
+  --chart-1: oklch(0.82 0.14 85); /* Yellow chart */
+  --chart-2: oklch(0.72 0.12 175); /* Teal chart */
+  --chart-3: oklch(0.55 0.22 25); /* Red chart */
+  --chart-4: oklch(0.65 0.15 30); /* Orange chart */
+  --chart-5: oklch(0.7 0.18 40); /* Amber chart */
+  --radius: 0.625rem; /* 10px rounded corners */
+  --sidebar: oklch(0.18 0.02 260); /* Navy sidebar */
+  --sidebar-foreground: oklch(0.95 0 0); /* White sidebar text */
+  --sidebar-primary: oklch(0.82 0.14 85); /* Yellow sidebar primary */
+  --sidebar-primary-foreground: oklch(0.16 0.02 260); /* Dark sidebar primary text */
+  --sidebar-accent: oklch(0.72 0.12 175); /* Teal sidebar accent */
+  --sidebar-accent-foreground: oklch(0.16 0.02 260); /* Dark sidebar accent text */
+  --sidebar-border: oklch(0.28 0.015 260); /* Navy sidebar border */
+  --sidebar-ring: oklch(0.82 0.14 85 / 0.5); /* Yellow sidebar ring */
+  --font-montserrat: "Montserrat", sans-serif;
+  --font-poppins: "Poppins", sans-serif;
 }
 
 @theme inline {
-  --font-sans: var(--font-open-sans);
-  --font-serif: var(--font-barlow-condensed);
-  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  --font-sans: var(--font-poppins);
+  --font-serif: var(--font-montserrat);
+  --font-mono: "Orbitron", ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, monospace;
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
