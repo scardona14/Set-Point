@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -57,8 +58,8 @@ const sportLabels: Record<Sport, string> = {
 }
 
 export function TournamentManager({ sport, currentUser }: TournamentManagerProps) {
-  const STORAGE_KEY = `setpoint_tournaments_${currentUser.id}`
-
+  const supabase = createClient()
+  
   const [tournaments, setTournaments] = useState<Tournament[]>([])
   const [showCreateDialog, setShowCreateDialog] = useState(false)
   const [selectedTournament, setSelectedTournament] = useState<Tournament | null>(null)
@@ -77,20 +78,55 @@ export function TournamentManager({ sport, currentUser }: TournamentManagerProps
   const [newPlayerName, setNewPlayerName] = useState("")
   const [playerList, setPlayerList] = useState<string[]>([])
 
-  useEffect(() => {
-    const saved = localStorage.getItem(STORAGE_KEY)
-    if (saved) {
-      try {
-        setTournaments(JSON.parse(saved))
-      } catch {
-        setTournaments([])
-      }
-    }
-  }, [STORAGE_KEY])
+  const fetchTournaments = useCallback(async () => {
+    const { data, error } = await supabase
+      .from("tournaments")
+      .select("*")
+      .eq("user_id", currentUser.id)
+      .order("created_at", { ascending: false })
 
-  const saveTournaments = (updated: Tournament[]) => {
+    if (!error && data) {
+      setTournaments(
+        data.map((t: any) => ({
+          id: t.id,
+          name: t.name,
+          sport: t.sport,
+          format: t.format,
+          matchFormat: t.match_format,
+          courts: t.courts || [],
+          players: t.players || [],
+          matches: t.matches || [],
+          status: t.status,
+          createdAt: t.created_at,
+        }))
+      )
+    }
+  }, [supabase, currentUser.id])
+
+  useEffect(() => {
+    fetchTournaments()
+  }, [fetchTournaments])
+
+  const saveTournaments = async (updated: Tournament[]) => {
     setTournaments(updated)
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(updated))
+    // Individual tournament saves happen in create/update functions
+  }
+  
+  const saveTournamentToDb = async (tournament: Tournament) => {
+    await supabase
+      .from("tournaments")
+      .upsert({
+        id: tournament.id,
+        user_id: currentUser.id,
+        name: tournament.name,
+        sport: tournament.sport,
+        format: tournament.format,
+        match_format: tournament.matchFormat,
+        courts: tournament.courts,
+        players: tournament.players,
+        matches: tournament.matches,
+        status: tournament.status,
+      })
   }
 
   const sportTournaments = tournaments.filter((t) => t.sport === sport)
@@ -171,38 +207,56 @@ export function TournamentManager({ sport, currentUser }: TournamentManagerProps
     return matches
   }
 
-  const handleCreateTournament = () => {
+  const handleCreateTournament = async () => {
     if (!newTournament.name.trim() || playerList.length < 2) return
 
     const matches = generateMatches(playerList, newTournament.format, newTournament.courtNames)
 
-    const tournament: Tournament = {
-      id: Date.now().toString(),
-      name: newTournament.name.trim(),
-      sport,
-      format: newTournament.format,
-      matchFormat: newTournament.matchFormat,
-      courts: newTournament.courtNames,
-      players: [...playerList],
-      matches,
-      status: "active",
-      createdAt: new Date().toISOString(),
-    }
+    const { data, error } = await supabase
+      .from("tournaments")
+      .insert({
+        user_id: currentUser.id,
+        name: newTournament.name.trim(),
+        sport,
+        format: newTournament.format,
+        match_format: newTournament.matchFormat,
+        courts: newTournament.courtNames,
+        players: [...playerList],
+        matches,
+        status: "active",
+      })
+      .select()
+      .single()
 
-    saveTournaments([tournament, ...tournaments])
-    setShowCreateDialog(false)
-    setNewTournament({
-      name: "",
-      format: "single-elimination",
-      matchFormat: "singles",
-      courtCount: 2,
-      courtNames: ["Court 1", "Court 2"],
-    })
-    setPlayerList([])
-    setSelectedTournament(tournament)
+    if (!error && data) {
+      const tournament: Tournament = {
+        id: data.id,
+        name: data.name,
+        sport: data.sport,
+        format: data.format,
+        matchFormat: data.match_format,
+        courts: data.courts || [],
+        players: data.players || [],
+        matches: data.matches || [],
+        status: data.status,
+        createdAt: data.created_at,
+      }
+
+      setTournaments((prev) => [tournament, ...prev])
+      setShowCreateDialog(false)
+      setNewTournament({
+        name: "",
+        format: "single-elimination",
+        matchFormat: "singles",
+        courtCount: 2,
+        courtNames: ["Court 1", "Court 2"],
+      })
+      setPlayerList([])
+      setSelectedTournament(tournament)
+    }
   }
 
-  const handleScoreSubmit = () => {
+  const handleScoreSubmit = async () => {
     if (!activeMatch || !selectedTournament || !matchScore.p1 || !matchScore.p2) return
 
     const p1Score = parseInt(matchScore.p1)
@@ -248,17 +302,22 @@ export function TournamentManager({ sport, currentUser }: TournamentManagerProps
       status: allComplete ? "completed" : "active",
     }
 
-    const updatedTournaments = tournaments.map((t) => (t.id === selectedTournament.id ? updatedTournament : t))
-    saveTournaments(updatedTournaments)
+    // Update in Supabase
+    await supabase
+      .from("tournaments")
+      .update({ matches: updatedMatches, status: updatedTournament.status })
+      .eq("id", selectedTournament.id)
+
+    setTournaments((prev) => prev.map((t) => (t.id === selectedTournament.id ? updatedTournament : t)))
     setSelectedTournament(updatedTournament)
     setShowScoreDialog(false)
     setActiveMatch(null)
     setMatchScore({ p1: "", p2: "" })
   }
 
-  const handleDeleteTournament = (tournamentId: string) => {
-    const updated = tournaments.filter((t) => t.id !== tournamentId)
-    saveTournaments(updated)
+  const handleDeleteTournament = async (tournamentId: string) => {
+    await supabase.from("tournaments").delete().eq("id", tournamentId)
+    setTournaments((prev) => prev.filter((t) => t.id !== tournamentId))
     if (selectedTournament?.id === tournamentId) {
       setSelectedTournament(null)
     }

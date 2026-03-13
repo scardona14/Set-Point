@@ -2,11 +2,11 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -17,7 +17,6 @@ import { ScoreTracker } from "@/components/score-tracker"
 import { FriendsManager } from "@/components/friends-manager"
 import { NotificationCenter } from "@/components/notification-center"
 import { UserProfileMenu } from "@/components/user-profile-menu"
-import { Alert, AlertDescription } from "@/components/ui/alert"
 import {
   AlertDialog,
   AlertDialogAction,
@@ -94,54 +93,19 @@ const getGreeting = () => {
   return "Good evening"
 }
 
-const USERS_STORAGE_KEY = "setpoint_users"
-const CURRENT_USER_KEY = "setpoint_current_user"
-
-const getUserData = (userId: string) => {
-  const key = `setpoint_user_${userId}`
-  const data = localStorage.getItem(key)
-  return data ? JSON.parse(data) : null
-}
-
-const saveUserData = (userId: string, data: any) => {
-  const key = `setpoint_user_${userId}`
-  localStorage.setItem(key, JSON.stringify(data))
-}
-
-const getAllUsers = (): User[] => {
-  const users = localStorage.getItem(USERS_STORAGE_KEY)
-  return users ? JSON.parse(users) : []
-}
-
-const saveUser = (user: User) => {
-  const users = getAllUsers()
-  const existingIndex = users.findIndex((u) => u.id === user.id)
-  if (existingIndex >= 0) {
-    users[existingIndex] = user
-  } else {
-    users.push(user)
-  }
-  localStorage.setItem(USERS_STORAGE_KEY, JSON.stringify(users))
-}
-
-const findUserByEmail = (email: string): User | null => {
-  const users = getAllUsers()
-  return users.find((u) => u.email.toLowerCase() === email.toLowerCase()) || null
-}
-
 export default function TennisMatchOrganizer() {
   const [currentUser, setCurrentUser] = useState<User | null>(null)
   const [selectedSport, setSelectedSport] = useState<Sport>("tennis")
-  const [isSignUp, setIsSignUp] = useState(false)
   const [showCreateMatch, setShowCreateMatch] = useState(false)
   const [showScoreTracker, setShowScoreTracker] = useState(false)
   const [showFriendsManager, setShowFriendsManager] = useState(false)
   const [activeMatch, setActiveMatch] = useState<Match | null>(null)
   const [matches, setMatches] = useState<Match[]>([])
   const [showMatchHistory, setShowMatchHistory] = useState(false)
-  const [authError, setAuthError] = useState<string>("")
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null)
+  const router = useRouter()
+  const supabase = createClient()
 
   // New Feature States
   const [discoveryPlayers] = useState([
@@ -150,131 +114,72 @@ export default function TennisMatchOrganizer() {
     { id: "3", name: "David S.", distance: "5.0 mi", winRate: "72%", avatar: "DS" }
   ])
 
+  // Fetch matches from Supabase
+  const fetchMatches = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from("matches")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+
+    if (!error && data) {
+      setMatches(
+        data.map((m: any) => ({
+          id: m.id,
+          opponent: m.opponent,
+          date: m.date,
+          time: m.time,
+          location: m.location,
+          status: m.status,
+          score: m.score,
+          notes: m.notes,
+          matchFormat: m.match_format,
+          doublesPartner: m.doubles_partner,
+          winner: m.winner,
+          sport: m.sport,
+        }))
+      )
+    }
+  }, [supabase])
+
+  // Load user session and data from Supabase
   useEffect(() => {
-    // Auto-login: check for existing user or create a default one
-    const savedUserId = localStorage.getItem(CURRENT_USER_KEY)
-    if (savedUserId) {
-      const users = getAllUsers()
-      const user = users.find((u) => u.id === savedUserId)
-      if (user) {
-        setCurrentUser(user)
-        const userData = getUserData(savedUserId)
-        if (userData?.matches) {
-          setMatches(userData.matches)
-        }
+    const loadUser = async () => {
+      setIsLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
+        router.push("/auth/login")
         return
       }
-    }
 
-    // No saved user found — create a default guest user and go straight to dashboard
-    const guestUser: User = {
-      id: "guest_" + Date.now().toString(),
-      name: "Player",
-      email: "player@setpoint.app",
-      skillLevel: "intermediate",
-      joinDate: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-      bio: "",
-      location: "",
-    }
-    saveUser(guestUser)
-    localStorage.setItem(CURRENT_USER_KEY, guestUser.id)
-    saveUserData(guestUser.id, { matches: [], friends: [], notifications: [] })
-    setCurrentUser(guestUser)
-    setMatches([])
-  }, [])
+      // Get profile from profiles table
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
 
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setIsLoading(true)
-    setAuthError("")
-
-    const formData = new FormData(e.target as HTMLFormElement)
-    const email = formData.get("email") as string
-    const password = formData.get("password") as string
-    const name = formData.get("name") as string
-
-    try {
-      if (isSignUp) {
-        // Registration
-        if (!name || !email || !password) {
-          setAuthError("All fields are required")
-          return
-        }
-
-        if (password.length < 6) {
-          setAuthError("Password must be at least 6 characters")
-          return
-        }
-
-        const existingUser = findUserByEmail(email)
-        if (existingUser) {
-          setAuthError("An account with this email already exists")
-          return
-        }
-
-        const newUser: User = {
-          id: Date.now().toString(),
-          name: name.trim(),
-          email: email.toLowerCase().trim(),
-          skillLevel: "intermediate",
-          joinDate: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
-          bio: "",
-          location: "San Juan, PR",
-          friends: [],
-          matchInvites: [],
-          skills: {
-            serve: 0,
-            forehand: 0,
-            backhand: 0,
-            netPlay: 0
-          }
-        }
-
-        saveUser(newUser)
-        localStorage.setItem(CURRENT_USER_KEY, newUser.id)
-
-        // Initialize empty user data
-        saveUserData(newUser.id, {
-          matches: [],
-          friends: [],
-          notifications: [],
-        })
-
-        setCurrentUser(newUser)
-        setMatches([]) // New users start with no matches
-      } else {
-        // Login
-        if (!email || !password) {
-          setAuthError("Email and password are required")
-          return
-        }
-
-        const user = findUserByEmail(email)
-        if (!user) {
-          setAuthError("No account found with this email")
-          return
-        }
-
-        // In a real app, you'd verify the password hash here
-        // For now, we'll just check if the user exists
-        localStorage.setItem(CURRENT_USER_KEY, user.id)
-        setCurrentUser(user)
-
-        // Load user's data
-        const userData = getUserData(user.id)
-        if (userData?.matches) {
-          setMatches(userData.matches)
-        }
+      const appUser: User = {
+        id: user.id,
+        name: profile?.display_name || user.user_metadata?.display_name || "Player",
+        email: user.email || "",
+        skillLevel: profile?.skill_level || "intermediate",
+        bio: profile?.bio || "",
+        location: profile?.location || "",
+        joinDate: new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
       }
-    } catch (error) {
-      setAuthError("An error occurred. Please try again.")
-    } finally {
+
+      setCurrentUser(appUser)
+      await fetchMatches(user.id)
       setIsLoading(false)
     }
-  }
 
-  const handleLogout = () => {
-    localStorage.removeItem(CURRENT_USER_KEY)
+    loadUser()
+  }, [router, supabase, fetchMatches])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
     setCurrentUser(null)
     setShowCreateMatch(false)
     setShowScoreTracker(false)
@@ -282,90 +187,100 @@ export default function TennisMatchOrganizer() {
     setActiveMatch(null)
     setShowMatchHistory(false)
     setMatches([])
-    setAuthError("")
+    router.push("/auth/login")
   }
 
-  const handleUpdateProfile = (updatedUser: User) => {
+  const handleUpdateProfile = async (updatedUser: User) => {
     setCurrentUser(updatedUser)
-    saveUser(updatedUser)
+    await supabase
+      .from("profiles")
+      .update({
+        display_name: updatedUser.name,
+        skill_level: updatedUser.skillLevel,
+        bio: updatedUser.bio,
+        location: updatedUser.location,
+      })
+      .eq("id", updatedUser.id)
   }
 
-  const handleCreateMatch = (matchData: Omit<Match, "id" | "status" | "sport">) => {
-    const newMatch: Match = {
-      ...matchData,
-      id: Date.now().toString(),
-      status: "upcoming",
-      sport: selectedSport,
-    }
-    const updatedMatches = [newMatch, ...matches]
-    setMatches(updatedMatches)
+  const handleCreateMatch = async (matchData: Omit<Match, "id" | "status" | "sport">) => {
+    if (!currentUser) return
 
-    if (currentUser) {
-      const userData = getUserData(currentUser.id) || {}
-      userData.matches = updatedMatches
-      saveUserData(currentUser.id, userData)
+    const { data, error } = await supabase
+      .from("matches")
+      .insert({
+        user_id: currentUser.id,
+        opponent: matchData.opponent,
+        date: matchData.date,
+        time: matchData.time,
+        location: matchData.location,
+        status: "upcoming",
+        sport: selectedSport,
+        match_format: matchData.matchFormat || "singles",
+        doubles_partner: matchData.doublesPartner || null,
+        notes: matchData.notes || null,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      const newMatch: Match = {
+        id: data.id,
+        opponent: data.opponent,
+        date: data.date,
+        time: data.time,
+        location: data.location,
+        status: data.status,
+        sport: data.sport,
+        matchFormat: data.match_format,
+        doublesPartner: data.doubles_partner,
+        notes: data.notes,
+      }
+      setMatches((prev) => [newMatch, ...prev])
     }
   }
 
-  const handleStartScoreTracking = (match: Match) => {
+  const handleStartScoreTracking = async (match: Match) => {
     setActiveMatch(match)
     setShowScoreTracker(true)
     const updatedMatches = matches.map((m) => (m.id === match.id ? { ...m, status: "in-progress" as const } : m))
     setMatches(updatedMatches)
 
-    if (currentUser) {
-      const userData = getUserData(currentUser.id) || {}
-      userData.matches = updatedMatches
-      saveUserData(currentUser.id, userData)
-    }
+    await supabase
+      .from("matches")
+      .update({ status: "in-progress" })
+      .eq("id", match.id)
   }
 
-  const handleSaveScore = (matchId: string, finalScore: string, winner: string) => {
+  const handleSaveScore = async (matchId: string, finalScore: string, winner: string) => {
     const updatedMatches = matches.map((match) =>
       match.id === matchId ? { ...match, status: "completed" as const, score: finalScore, winner } : match,
     )
     setMatches(updatedMatches)
     setActiveMatch(null)
 
-    if (currentUser) {
-      const userData = getUserData(currentUser.id) || {}
-      userData.matches = updatedMatches
-      saveUserData(currentUser.id, userData)
-    }
+    await supabase
+      .from("matches")
+      .update({ status: "completed", score: finalScore, winner })
+      .eq("id", matchId)
   }
 
   const handleFriendRequestAction = (notificationId: string, action: "accept" | "reject") => {
     console.log(`Friend request ${notificationId} ${action}ed`)
-    if (action === "accept") {
-    }
   }
 
   const handleMatchInvitationAction = (notificationId: string, action: "accept" | "reject") => {
     console.log(`Match invitation ${notificationId} ${action}ed`)
-    if (action === "accept") {
-      const newMatch: Match = {
-        id: Date.now().toString(),
-        opponent: "Alex Rodriguez",
-        date: "2024-01-21",
-        time: "15:00",
-        location: "City Sports Complex",
-        status: "upcoming",
-        sport: selectedSport,
-      }
-      setMatches((prev) => [newMatch, ...prev])
-    }
   }
 
-  const handleDeleteMatch = (matchId: string) => {
-    const updatedMatches = matches.filter((m) => m.id !== matchId)
-    setMatches(updatedMatches)
+  const handleDeleteMatch = async (matchId: string) => {
+    setMatches((prev) => prev.filter((m) => m.id !== matchId))
     setMatchToDelete(null)
 
-    if (currentUser) {
-      const userData = getUserData(currentUser.id) || {}
-      userData.matches = updatedMatches
-      saveUserData(currentUser.id, userData)
-    }
+    await supabase
+      .from("matches")
+      .delete()
+      .eq("id", matchId)
   }
 
   const formatDate = (dateString: string) => {
@@ -389,23 +304,6 @@ export default function TennisMatchOrganizer() {
   }
 
   const matchStats = getMatchStats()
-
-  // Calculate current win streak
-  const winStreak = (() => {
-    const completedMatches = sportMatches
-      .filter((m) => m.status === "completed")
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-    
-    let streak = 0
-    for (const match of completedMatches) {
-      if (match.winner === "player1") {
-        streak++
-      } else {
-        break
-      }
-    }
-    return streak
-  })()
 
   const sportLabels: Record<Sport, { name: string; abbr: string }> = {
     tennis: { name: "Tennis", abbr: "TEN" },
