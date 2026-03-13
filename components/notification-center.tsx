@@ -27,59 +27,14 @@ interface NotificationCenterProps {
   currentUserId?: string
 }
 
-const getUserNotifications = (userId: string): Notification[] => {
-  const key = `setpoint_user_${userId}`
-  const userData = localStorage.getItem(key)
-  if (userData) {
-    const parsed = JSON.parse(userData)
-    return (parsed.notifications || []).map((n: any) => ({
-      ...n,
-      timestamp: new Date(n.timestamp),
-    }))
-  }
-  return []
-}
-
-const saveUserNotifications = (userId: string, notifications: Notification[]) => {
-  const key = `setpoint_user_${userId}`
-  const existingData = localStorage.getItem(key)
-  const userData = existingData ? JSON.parse(existingData) : {}
-  userData.notifications = notifications
-  localStorage.setItem(key, JSON.stringify(userData))
-}
-
-const getUserSettings = (userId: string) => {
-  const key = `setpoint_user_${userId}`
-  const userData = localStorage.getItem(key)
-  if (userData) {
-    const parsed = JSON.parse(userData)
-    return (
-      parsed.notificationSettings || {
-        matchReminders: true,
-        friendRequests: true,
-        scoreUpdates: true,
-        matchInvitations: true,
-        emailNotifications: false,
-        pushNotifications: true,
-      }
-    )
-  }
-  return {
-    matchReminders: true,
-    friendRequests: true,
-    scoreUpdates: true,
-    matchInvitations: true,
-    emailNotifications: false,
-    pushNotifications: true,
-  }
-}
-
-const saveUserSettings = (userId: string, settings: any) => {
-  const key = `setpoint_user_${userId}`
-  const existingData = localStorage.getItem(key)
-  const userData = existingData ? JSON.parse(existingData) : {}
-  userData.notificationSettings = settings
-  localStorage.setItem(key, JSON.stringify(userData))
+// Default notification settings
+const defaultSettings = {
+  matchReminders: true,
+  friendRequests: true,
+  scoreUpdates: true,
+  matchInvitations: true,
+  emailNotifications: false,
+  pushNotifications: true,
 }
 
 export function NotificationCenter({
@@ -87,39 +42,18 @@ export function NotificationCenter({
   onMatchInvitationAction,
   currentUserId,
 }: NotificationCenterProps) {
+  // Notifications are stored in component state - will be moved to Supabase when notifications table is created
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [settings, setSettings] = useState({
-    matchReminders: true,
-    friendRequests: true,
-    scoreUpdates: true,
-    matchInvitations: true,
-    emailNotifications: false,
-    pushNotifications: true,
-  })
+  const [settings, setSettings] = useState(defaultSettings)
   const [showSettings, setShowSettings] = useState(false)
 
+  // Reset notifications when user changes
   useEffect(() => {
-    if (currentUserId) {
-      const userNotifications = getUserNotifications(currentUserId)
-      const userSettings = getUserSettings(currentUserId)
-      setNotifications(userNotifications)
-      setSettings(userSettings)
-    } else {
+    if (!currentUserId) {
       setNotifications([])
+      setSettings(defaultSettings)
     }
   }, [currentUserId])
-
-  useEffect(() => {
-    if (currentUserId && notifications.length >= 0) {
-      saveUserNotifications(currentUserId, notifications)
-    }
-  }, [notifications, currentUserId])
-
-  useEffect(() => {
-    if (currentUserId) {
-      saveUserSettings(currentUserId, settings)
-    }
-  }, [settings, currentUserId])
 
   const unreadCount = notifications.filter((n) => !n.read).length
 

@@ -50,23 +50,8 @@ interface FriendsManagerProps {
   currentUserId: string
 }
 
-const getUserFriends = (userId: string): Friend[] => {
-  const key = `setpoint_user_${userId}`
-  const userData = localStorage.getItem(key)
-  if (userData) {
-    const parsed = JSON.parse(userData)
-    return parsed.friends || []
-  }
-  return []
-}
-
-const saveUserFriends = (userId: string, friends: Friend[]) => {
-  const key = `setpoint_user_${userId}`
-  const existingData = localStorage.getItem(key)
-  const userData = existingData ? JSON.parse(existingData) : {}
-  userData.friends = friends
-  localStorage.setItem(key, JSON.stringify(userData))
-}
+// Friends feature uses client-side state only (demo mode)
+// Full persistence would require a friends table in Supabase
 
 export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsManagerProps) {
   const [friends, setFriends] = useState<Friend[]>([])
@@ -74,19 +59,6 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
   const [newFriendContact, setNewFriendContact] = useState("")
   const [contactMethod, setContactMethod] = useState<"email" | "phone">("email")
   const [activeTab, setActiveTab] = useState("friends")
-
-  useEffect(() => {
-    if (currentUserId) {
-      const userFriends = getUserFriends(currentUserId)
-      setFriends(userFriends)
-    }
-  }, [currentUserId])
-
-  useEffect(() => {
-    if (currentUserId && friends.length >= 0) {
-      saveUserFriends(currentUserId, friends)
-    }
-  }, [friends, currentUserId])
 
   const activeFriends = friends.filter((f) => f.status === "active")
   const pendingReceived = friends.filter((f) => f.status === "pending-received")
@@ -128,8 +100,7 @@ export function FriendsManager({ open, onOpenChange, currentUserId }: FriendsMan
     }
 
     try {
-      const currentUser = JSON.parse(localStorage.getItem(`setpoint_user_${currentUserId}`) || "{}")
-      const senderName = currentUser.name || "A tennis player"
+      const senderName = "A Set Point player"
 
       if (contactMethod === "phone") {
         const success = await SMSService.sendInvitation(newFriendContact, senderName)
