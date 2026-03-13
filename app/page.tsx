@@ -390,6 +390,23 @@ export default function TennisMatchOrganizer() {
 
   const matchStats = getMatchStats()
 
+  // Calculate current win streak
+  const winStreak = (() => {
+    const completedMatches = sportMatches
+      .filter((m) => m.status === "completed")
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    
+    let streak = 0
+    for (const match of completedMatches) {
+      if (match.winner === "player1") {
+        streak++
+      } else {
+        break
+      }
+    }
+    return streak
+  })()
+
   const sportLabels: Record<Sport, { name: string; abbr: string }> = {
     tennis: { name: "Tennis", abbr: "TEN" },
     pickleball: { name: "Pickleball", abbr: "PKL" },
