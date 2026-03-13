@@ -132,13 +132,6 @@ export default function TennisMatchOrganizer() {
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null)
 
   // New Feature States
-  const [weeklyChallenge, setWeeklyChallenge] = useState({
-    title: "Play 3 matches this week",
-    target: 3,
-    progress: 0,
-    completed: false
-  })
-
   const [discoveryPlayers] = useState([
     { id: "1", name: "Carlos R.", distance: "2.1 mi", winRate: "68%", avatar: "CR" },
     { id: "2", name: "Maria V.", distance: "3.5 mi", winRate: "54%", avatar: "MV" },
@@ -156,13 +149,6 @@ export default function TennisMatchOrganizer() {
         const userData = getUserData(savedUserId)
         if (userData?.matches) {
           setMatches(userData.matches)
-          
-          const currentWeekMatches = userData.matches.filter((m: Match) => m.status === 'completed').length
-          setWeeklyChallenge(prev => ({
-            ...prev,
-            progress: Math.min(currentWeekMatches, prev.target),
-            completed: currentWeekMatches >= prev.target
-          }))
         }
       }
     }
@@ -395,31 +381,6 @@ export default function TennisMatchOrganizer() {
     if (hour < 18) return "Good afternoon"
     return "Good evening"
   }
-
-  const [weatherData, setWeatherData] = useState<{temp: number, condition: string, playability: string, isLoaded: boolean}>({
-    temp: 0,
-    condition: "",
-    playability: "",
-    isLoaded: false
-  })
-
-  // Basic weather stub based on location string containing "PR"
-  useEffect(() => {
-    const loc = currentUser?.location || ""
-    if (loc) {
-      // Fake a weather API delay
-      setTimeout(() => {
-        const isTropical = loc.includes("PR") || loc.includes("FL")
-        
-        setWeatherData({
-          temp: isTropical ? 84 : 68,
-          condition: isTropical ? "Sunny" : "Partly Cloudy",
-          playability: "Play ball",
-          isLoaded: true
-        })
-      }, 800)
-    }
-  }, [currentUser?.location])
 
   if (!currentUser) {
     return (
@@ -1200,56 +1161,6 @@ export default function TennisMatchOrganizer() {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            <Card className="border-primary/20 bg-card overflow-hidden">
-              <div className="bg-primary/10 px-4 py-2 border-b border-primary/20 flex items-center justify-between">
-                <span className="font-serif text-sm tracking-wider uppercase flex items-center gap-1">
-                  <MapPin className="h-3 w-3" /> {currentUser.location || "Local Courts"}
-                </span>
-                <span className="text-xs text-muted-foreground">COURT WEATHER</span>
-              </div>
-              <CardContent className="p-4">
-                {!weatherData.isLoaded ? (
-                  <div className="animate-pulse flex space-x-4 items-center">
-                    <div className="rounded-full bg-muted h-10 w-10"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-4 bg-muted rounded w-3/4"></div>
-                      <div className="h-3 bg-muted rounded w-1/2"></div>
-                    </div>
-                  </div>
-                ) : (
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-3">
-                      {weatherData.condition === "Sunny" ? (
-                        <Sun className="h-8 w-8 text-yellow-400 drop-shadow-[0_0_8px_rgba(250,204,21,0.6)]" />
-                      ) : weatherData.condition.includes("Rain") ? (
-                        <CloudRain className="h-8 w-8 text-blue-400" />
-                      ) : (
-                        <Cloud className="h-8 w-8 text-gray-400" />
-                      )}
-                      <div>
-                        <p className="text-2xl font-serif font-bold">{weatherData.temp}°<span className="text-lg text-muted-foreground font-sans">F</span></p>
-                        <p className="text-xs text-muted-foreground">{weatherData.condition}</p>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <Badge 
-                        variant="secondary" 
-                        className={`text-xs font-serif tracking-widest ${
-                          weatherData.playability === "Play ball" 
-                            ? "bg-primary/20 text-primary border-primary/30" 
-                            : weatherData.playability === "Rain delay"
-                            ? "bg-destructive/20 text-destructive border-destructive/30"
-                            : "bg-orange-500/20 text-orange-500 border-orange-500/30"
-                        }`}
-                      >
-                        {weatherData.playability.toUpperCase()}
-                      </Badge>
-                    </div>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
             <Card>
               <CardHeader>
                 <CardTitle className="font-serif">Quick Actions</CardTitle>
@@ -1285,29 +1196,6 @@ export default function TennisMatchOrganizer() {
                   <Users className="h-4 w-4 mr-2" />
                   Manage Friends
                 </Button>
-              </CardContent>
-            </Card>
-
-            {/* Weekly Challenge */}
-            <Card className="border-secondary/50 bg-secondary/10">
-              <CardHeader className="pb-2">
-                <CardTitle className="font-serif text-lg">Weekly Challenge</CardTitle>
-                <CardDescription className="text-foreground">{weeklyChallenge.title}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="flex justify-between text-sm mb-2">
-                  <span>Progress</span>
-                  <span className="font-bold">{weeklyChallenge.progress} / {weeklyChallenge.target}</span>
-                </div>
-                <div className="h-3 bg-muted rounded-full overflow-hidden">
-                  <div 
-                    className={`h-full transition-all duration-1000 ${weeklyChallenge.completed ? 'bg-primary shadow-[0_0_10px_rgba(204,255,0,0.8)]' : 'bg-primary/60'}`} 
-                    style={{ width: `${(weeklyChallenge.progress / weeklyChallenge.target) * 100}%` }}
-                  ></div>
-                </div>
-                {weeklyChallenge.completed && (
-                  <p className="text-xs text-primary mt-2 font-serif tracking-wide uppercase text-center animate-pulse">Challenge Completed! Badge Awarded 🏆</p>
-                )}
               </CardContent>
             </Card>
 
