@@ -22,8 +22,14 @@ export default function LoginPage() {
     e.preventDefault()
     setIsLoading(true)
     
+    // Store session in localStorage (mock auth - no real authentication)
+    localStorage.setItem("setpoint_session", JSON.stringify({
+      email: email || "player@setpoint.app",
+      name: email ? email.split("@")[0] : "Player",
+      loggedIn: true
+    }))
+    
     // Simulate a brief loading state then redirect to main app
-    // No actual authentication - just pass through
     setTimeout(() => {
       router.push("/")
     }, 500)

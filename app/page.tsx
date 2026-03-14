@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -102,6 +103,7 @@ export default function TennisMatchOrganizer() {
   const [showMatchHistory, setShowMatchHistory] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null)
+  const router = useRouter()
 
   // New Feature States
   const [discoveryPlayers] = useState([
@@ -110,23 +112,44 @@ export default function TennisMatchOrganizer() {
     { id: "3", name: "David S.", distance: "5.0 mi", winRate: "72%", avatar: "DS" }
   ])
 
-  // Initialize default user (no auth required)
+  // Check for session and redirect to login if not found
   useEffect(() => {
-    const defaultUser: User = {
-      id: "local-user",
-      name: "Player",
-      email: "",
-      skillLevel: "intermediate",
-      bio: "",
-      location: "",
-      joinDate: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+    const sessionData = localStorage.getItem("setpoint_session")
+    
+    if (!sessionData) {
+      // No session - redirect to login
+      router.push("/auth/login")
+      return
     }
-    setCurrentUser(defaultUser)
-    setIsLoading(false)
-  }, [])
+    
+    try {
+      const session = JSON.parse(sessionData)
+      if (!session.loggedIn) {
+        router.push("/auth/login")
+        return
+      }
+      
+      // Create user from session data
+      const user: User = {
+        id: "local-user",
+        name: session.name || "Player",
+        email: session.email || "",
+        skillLevel: "intermediate",
+        bio: "",
+        location: "",
+        joinDate: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+      }
+      setCurrentUser(user)
+      setIsLoading(false)
+    } catch {
+      // Invalid session - redirect to login
+      router.push("/auth/login")
+    }
+  }, [router])
 
   const handleLogout = () => {
-    // No-op since auth is disabled
+    localStorage.removeItem("setpoint_session")
+    router.push("/auth/login")
   }
 
   const handleUpdateProfile = (updatedUser: User) => {
