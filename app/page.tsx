@@ -300,10 +300,22 @@ export default function TennisMatchOrganizer() {
     const losses = completedMatches.length - wins
     const winRate = completedMatches.length > 0 ? Math.round((wins / completedMatches.length) * 100) : 0
 
-    return { wins, losses, winRate, totalMatches: completedMatches.length }
+    // Calculate win streak (consecutive wins from most recent matches)
+    const sortedMatches = [...completedMatches].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    let winStreak = 0
+    for (const match of sortedMatches) {
+      if (match.winner === "player1") {
+        winStreak++
+      } else {
+        break
+      }
+    }
+
+    return { wins, losses, winRate, totalMatches: completedMatches.length, winStreak }
   }
 
   const matchStats = getMatchStats()
+  const { winStreak } = matchStats
 
   const sportLabels: Record<Sport, { name: string; abbr: string }> = {
     tennis: { name: "Tennis", abbr: "TEN" },
