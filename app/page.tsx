@@ -224,7 +224,7 @@ export default function TennisMatchOrganizer() {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
         <div className="text-center space-y-4">
-          <Image src="/tennis-ball-realistic.png" alt="Set Point Logo" width={64} height={64} className="mx-auto rounded-full animate-pulse" />
+          <Image src="/app-icon.png" alt="Set Point Logo" width={64} height={64} className="mx-auto rounded-lg animate-pulse" />
           <p className="text-muted-foreground">Loading Set Point...</p>
         </div>
       </div>
@@ -240,11 +240,11 @@ export default function TennisMatchOrganizer() {
             <div className="flex items-center gap-2">
               <div className="flex h-10 w-10 mt-1 items-center justify-center">
                 <Image
-                  src="/apple-icon.png"
+                  src="/app-icon.png"
                   alt="Set Point Logo"
                   width={40}
                   height={40}
-                  className="rounded-full shadow-[0_0_10px_rgba(204,255,0,0.4)]"
+                  className="rounded-lg shadow-[0_0_10px_rgba(204,255,0,0.4)]"
                 />
               </div>
               <div>
@@ -379,11 +379,11 @@ export default function TennisMatchOrganizer() {
                     <CardContent className="p-8 text-center">
                       <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center">
                         <Image
-                          src="/apple-icon.png"
+                          src="/app-icon.png"
                           alt="Tennis Ball"
                           width={64}
                           height={64}
-                          className="rounded-full"
+                          className="rounded-lg"
                         />
                       </div>
                       <h3 className="font-serif text-xl font-semibold mb-2">Welcome to Set Point!</h3>
