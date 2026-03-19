@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Montserrat, Poppins, Orbitron } from "next/font/google"
+import { Toaster } from "sonner"
 import "./globals.css"
 
 const montserrat = Montserrat({
@@ -49,7 +50,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${montserrat.variable} ${poppins.variable} ${orbitron.variable} antialiased`}>
-      <body className="font-sans bg-background text-foreground">{children}</body>
+      <body className="font-sans bg-background text-foreground">
+        {children}
+        <Toaster position="bottom-right" richColors />
+      </body>
     </html>
   )
 }
