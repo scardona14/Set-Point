@@ -1212,7 +1212,7 @@ export default function TennisMatchOrganizer() {
         />
       )}
 
-      <FriendsManager open={showFriendsManager} onOpenChange={setShowFriendsManager} currentUserId={currentUser.id} />
+      <FriendsManager open={showFriendsManager} onOpenChange={setShowFriendsManager} currentUserId={currentUser.id} currentUserEmail={currentUser.email} />
 
       <AlertDialog open={!!matchToDelete} onOpenChange={(open) => !open && setMatchToDelete(null)}>
         <AlertDialogContent>
