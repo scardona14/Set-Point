@@ -1,6 +1,7 @@
 import type React from "react"
 import type { Metadata, Viewport } from "next"
 import { Montserrat, Poppins, Orbitron } from "next/font/google"
+import { Toaster } from "sonner"
 import "./globals.css"
 
 const montserrat = Montserrat({
@@ -25,7 +26,21 @@ const orbitron = Orbitron({
 export const metadata: Metadata = {
   title: "Set Point",
   description: "Your ultimate tennis organizer - organize matches with friends, track scores, and send reminders",
-    generator: 'v0.app'
+  generator: "v0.app",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Set Point",
+  },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#ccff00",
 }
 
 export default function RootLayout({
@@ -35,7 +50,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${montserrat.variable} ${poppins.variable} ${orbitron.variable} antialiased`}>
-      <body className="font-sans bg-background text-foreground">{children}</body>
+      <body className="font-sans bg-background text-foreground">
+        {children}
+        <Toaster position="bottom-right" richColors />
+      </body>
     </html>
   )
 }

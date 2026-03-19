@@ -9,31 +9,56 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Loader2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 
 export default function SignUpPage() {
   const [displayName, setDisplayName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const router = useRouter()
+  const supabase = createClient()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
+    setError(null)
+
+    if (password !== confirmPassword) {
+      setError("Passwords do not match")
+      return
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters")
+      return
+    }
+
     setIsLoading(true)
-    
-    // Store session in localStorage (mock auth - no real authentication)
-    localStorage.setItem("setpoint_session", JSON.stringify({
-      email: email || "player@setpoint.app",
-      name: displayName || email?.split("@")[0] || "Player",
-      loggedIn: true
-    }))
-    
-    // Simulate a brief loading state then redirect to main app
-    setTimeout(() => {
-      router.push("/")
-    }, 500)
+
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo:
+          process.env.NEXT_PUBLIC_DEV_SUPABASE_REDIRECT_URL ||
+          `${window.location.origin}/auth/callback`,
+        data: {
+          display_name: displayName || "Player",
+        },
+      },
+    })
+
+    if (error) {
+      setError(error.message)
+      setIsLoading(false)
+      return
+    }
+
+    router.push("/auth/sign-up-success")
   }
 
   return (
@@ -63,6 +88,11 @@ export default function SignUpPage() {
 
         <form onSubmit={handleSignUp}>
           <CardContent className="space-y-4">
+            {error && (
+              <div className="p-3 rounded-lg bg-red-500/10 border border-red-500/20 text-red-400 text-sm">
+                {error}
+              </div>
+            )}
             <div className="space-y-2">
               <Label htmlFor="displayName" className="text-gray-300">
                 Display Name
@@ -73,6 +103,7 @@ export default function SignUpPage() {
                 placeholder="Your name"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
+                required
                 className="bg-[#1a1a1a] border-[#3a3a3a] text-white placeholder:text-gray-500 focus:border-[#ccff00] focus:ring-[#ccff00]/20"
               />
             </div>
@@ -87,6 +118,7 @@ export default function SignUpPage() {
                 placeholder="you@example.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                required
                 className="bg-[#1a1a1a] border-[#3a3a3a] text-white placeholder:text-gray-500 focus:border-[#ccff00] focus:ring-[#ccff00]/20"
               />
             </div>
@@ -102,6 +134,7 @@ export default function SignUpPage() {
                   placeholder="Create a password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
+                  required
                   className="bg-[#1a1a1a] border-[#3a3a3a] text-white placeholder:text-gray-500 focus:border-[#ccff00] focus:ring-[#ccff00]/20 pr-10"
                 />
                 <button
@@ -113,6 +146,21 @@ export default function SignUpPage() {
                 </button>
               </div>
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmPassword" className="text-gray-300">
+                Confirm Password
+              </Label>
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                required
+                className="bg-[#1a1a1a] border-[#3a3a3a] text-white placeholder:text-gray-500 focus:border-[#ccff00] focus:ring-[#ccff00]/20"
+              />
+            </div>
           </CardContent>
 
           <CardFooter className="flex flex-col space-y-4">
@@ -121,7 +169,14 @@ export default function SignUpPage() {
               disabled={isLoading}
               className="w-full bg-[#ccff00] text-black hover:bg-[#b8e600] font-semibold disabled:opacity-50"
             >
-              {isLoading ? "Creating account..." : "Create Account"}
+              {isLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Creating account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </Button>
 
             <p className="text-sm text-gray-400 text-center">

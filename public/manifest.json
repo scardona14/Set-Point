@@ -1,0 +1,26 @@
+{
+  "name": "Set Point",
+  "short_name": "Set Point",
+  "description": "Track your tennis, pickleball, and padel matches",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a1a",
+  "theme_color": "#ccff00",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/app-icon.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/apple-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ],
+  "categories": ["sports", "fitness", "lifestyle"],
+  "screenshots": [],
+  "prefer_related_applications": false
+}
