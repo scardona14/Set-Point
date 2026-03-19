@@ -2,8 +2,9 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -104,6 +105,7 @@ export default function TennisMatchOrganizer() {
   const [isLoading, setIsLoading] = useState(true)
   const [matchToDelete, setMatchToDelete] = useState<Match | null>(null)
   const router = useRouter()
+  const supabase = createClient()
 
   // New Feature States
   const [discoveryPlayers] = useState([
@@ -112,81 +114,149 @@ export default function TennisMatchOrganizer() {
     { id: "3", name: "David S.", distance: "5.0 mi", winRate: "72%", avatar: "DS" }
   ])
 
-  // Check for session and redirect to login if not found
-  useEffect(() => {
-    const sessionData = localStorage.getItem("setpoint_session")
-    
-    if (!sessionData) {
-      // No session - redirect to login
-      router.push("/auth/login")
-      return
+  // Fetch matches from Supabase
+  const fetchMatches = useCallback(async (userId: string) => {
+    const { data, error } = await supabase
+      .from("matches")
+      .select("*")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+
+    if (!error && data) {
+      setMatches(
+        data.map((m: Record<string, unknown>) => ({
+          id: m.id as string,
+          opponent: m.opponent as string,
+          date: m.date as string,
+          time: m.time as string,
+          location: m.location as string,
+          status: m.status as "upcoming" | "completed" | "in-progress",
+          score: m.score as string | undefined,
+          notes: m.notes as string | undefined,
+          matchFormat: m.match_format as "singles" | "doubles" | undefined,
+          doublesPartner: m.doubles_partner as string | undefined,
+          winner: m.winner as string | undefined,
+          sport: m.sport as Sport,
+        }))
+      )
     }
-    
-    try {
-      const session = JSON.parse(sessionData)
-      if (!session.loggedIn) {
+  }, [supabase])
+
+  // Load user session and data from Supabase
+  useEffect(() => {
+    const loadUser = async () => {
+      setIsLoading(true)
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!user) {
         router.push("/auth/login")
         return
       }
-      
-      // Create user from session data
-      const user: User = {
-        id: "local-user",
-        name: session.name || "Player",
-        email: session.email || "",
-        skillLevel: "intermediate",
-        bio: "",
-        location: "",
-        joinDate: new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }),
+
+      // Get profile from profiles table
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("*")
+        .eq("id", user.id)
+        .single()
+
+      const appUser: User = {
+        id: user.id,
+        name: profile?.display_name || user.user_metadata?.display_name || "Player",
+        email: user.email || "",
+        skillLevel: profile?.skill_level || "intermediate",
+        bio: profile?.bio || "",
+        location: profile?.location || "",
+        joinDate: new Date(user.created_at).toLocaleDateString("en-US", { month: "long", year: "numeric" }),
       }
-      setCurrentUser(user)
+
+      setCurrentUser(appUser)
+      await fetchMatches(user.id)
       setIsLoading(false)
-    } catch {
-      // Invalid session - redirect to login
-      router.push("/auth/login")
     }
-  }, [router])
 
-  const handleLogout = () => {
-    localStorage.removeItem("setpoint_session")
+    loadUser()
+  }, [router, supabase, fetchMatches])
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut()
     router.push("/auth/login")
+    router.refresh()
   }
 
-  const handleUpdateProfile = (updatedUser: User) => {
+  const handleUpdateProfile = async (updatedUser: User) => {
     setCurrentUser(updatedUser)
+    await supabase
+      .from("profiles")
+      .update({
+        display_name: updatedUser.name,
+        skill_level: updatedUser.skillLevel,
+        bio: updatedUser.bio,
+        location: updatedUser.location,
+      })
+      .eq("id", updatedUser.id)
   }
 
-  const handleCreateMatch = (matchData: Omit<Match, "id" | "status" | "sport">) => {
+  const handleCreateMatch = async (matchData: Omit<Match, "id" | "status" | "sport">) => {
     if (!currentUser) return
 
-    const newMatch: Match = {
-      id: crypto.randomUUID(),
-      opponent: matchData.opponent,
-      date: matchData.date,
-      time: matchData.time,
-      location: matchData.location,
-      status: "upcoming",
-      sport: selectedSport,
-      matchFormat: matchData.matchFormat || "singles",
-      doublesPartner: matchData.doublesPartner,
-      notes: matchData.notes,
+    const { data, error } = await supabase
+      .from("matches")
+      .insert({
+        user_id: currentUser.id,
+        opponent: matchData.opponent,
+        date: matchData.date,
+        time: matchData.time,
+        location: matchData.location,
+        status: "upcoming",
+        sport: selectedSport,
+        match_format: matchData.matchFormat || "singles",
+        doubles_partner: matchData.doublesPartner || null,
+        notes: matchData.notes || null,
+      })
+      .select()
+      .single()
+
+    if (!error && data) {
+      const newMatch: Match = {
+        id: data.id,
+        opponent: data.opponent,
+        date: data.date,
+        time: data.time,
+        location: data.location,
+        status: data.status,
+        sport: data.sport,
+        matchFormat: data.match_format,
+        doublesPartner: data.doubles_partner,
+        notes: data.notes,
+      }
+      setMatches((prev) => [newMatch, ...prev])
     }
-    setMatches((prev) => [newMatch, ...prev])
   }
 
-  const handleStartScoreTracking = (match: Match) => {
+  const handleStartScoreTracking = async (match: Match) => {
     setActiveMatch(match)
     setShowScoreTracker(true)
     const updatedMatches = matches.map((m) => (m.id === match.id ? { ...m, status: "in-progress" as const } : m))
     setMatches(updatedMatches)
+
+    await supabase
+      .from("matches")
+      .update({ status: "in-progress" })
+      .eq("id", match.id)
   }
 
-  const handleSaveScore = (matchId: string, finalScore: string, winner: string) => {
+  const handleSaveScore = async (matchId: string, finalScore: string, winner: string) => {
     const updatedMatches = matches.map((match) =>
       match.id === matchId ? { ...match, status: "completed" as const, score: finalScore, winner } : match,
     )
     setMatches(updatedMatches)
     setActiveMatch(null)
+
+    await supabase
+      .from("matches")
+      .update({ status: "completed", score: finalScore, winner })
+      .eq("id", matchId)
   }
 
   const handleFriendRequestAction = (notificationId: string, action: "accept" | "reject") => {
@@ -197,9 +267,14 @@ export default function TennisMatchOrganizer() {
     console.log(`Match invitation ${notificationId} ${action}ed`)
   }
 
-  const handleDeleteMatch = (matchId: string) => {
+  const handleDeleteMatch = async (matchId: string) => {
     setMatches((prev) => prev.filter((m) => m.id !== matchId))
     setMatchToDelete(null)
+
+    await supabase
+      .from("matches")
+      .delete()
+      .eq("id", matchId)
   }
 
   const formatDate = (dateString: string) => {

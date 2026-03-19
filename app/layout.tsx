@@ -25,7 +25,21 @@ const orbitron = Orbitron({
 export const metadata: Metadata = {
   title: "Set Point",
   description: "Your ultimate tennis organizer - organize matches with friends, track scores, and send reminders",
-    generator: 'v0.app'
+  generator: "v0.app",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Set Point",
+  },
+}
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  themeColor: "#ccff00",
 }
 
 export default function RootLayout({
