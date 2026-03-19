@@ -9,6 +9,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
+  output: 'standalone',
   ...(process.env.BUILD_TARGET === 'pwa' && {
     output: 'export',
     trailingSlash: true,
