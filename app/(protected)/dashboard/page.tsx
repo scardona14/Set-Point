@@ -10,7 +10,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { CalendarDays, Users, Trophy, Plus, MapPin, Clock, Play, Trash2 } from "lucide-react"
+import { CalendarDays, Users, Trophy, Plus, MapPin, Clock, Play, Trash2, BarChart3 } from "lucide-react"
+import { StatsDashboard } from "@/components/stats-dashboard"
+import { MatchHistory } from "@/components/match-history"
 import { TournamentManager } from "@/components/tournament-manager"
 import { CreateMatchDialog } from "@/components/create-match-dialog"
 import { ScoreTracker } from "@/components/score-tracker"
@@ -451,11 +453,12 @@ export default function TennisMatchOrganizer() {
           {/* Matches List */}
           <div className="lg:col-span-2">
             <Tabs defaultValue="matches" className="w-full">
-              <TabsList className="grid w-full grid-cols-3 bg-muted/50 p-1">
-                <TabsTrigger value="matches" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase">Matches</TabsTrigger>
-                <TabsTrigger value="tournaments" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase">Tournaments</TabsTrigger>
-                <TabsTrigger value="analytics" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase">Analytics</TabsTrigger>
-              </TabsList>
+<TabsList className="grid w-full grid-cols-4 bg-muted/50 p-1">
+  <TabsTrigger value="matches" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase text-xs sm:text-sm">Matches</TabsTrigger>
+  <TabsTrigger value="history" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase text-xs sm:text-sm">History</TabsTrigger>
+  <TabsTrigger value="tournaments" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase text-xs sm:text-sm">Tournaments</TabsTrigger>
+  <TabsTrigger value="analytics" className="data-[state=active]:shadow-[0_0_15px_rgba(0,240,255,0.3)] data-[state=active]:bg-primary/20 data-[state=active]:text-primary font-serif tracking-wide uppercase text-xs sm:text-sm">Stats</TabsTrigger>
+  </TabsList>
 
               <TabsContent value="matches" className="space-y-6">
                 <div className="flex items-center justify-between">
@@ -709,12 +712,16 @@ export default function TennisMatchOrganizer() {
                         ))
                     )}
                   </div>
-                )}
-              </TabsContent>
+)}
+  </TabsContent>
 
-              <TabsContent value="tournaments" className="space-y-6">
-                <TournamentManager sport={selectedSport} currentUser={currentUser} />
-              </TabsContent>
+  <TabsContent value="history" className="space-y-6">
+    <MatchHistory matches={matches} userName={currentUser.name} />
+  </TabsContent>
+  
+  <TabsContent value="tournaments" className="space-y-6">
+  <TournamentManager sport={selectedSport} currentUser={currentUser} />
+  </TabsContent>
 
               {/* Analytics Tab */}
               <TabsContent value="analytics" className="space-y-6">
