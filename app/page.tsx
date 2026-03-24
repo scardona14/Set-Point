@@ -1,5 +1,52 @@
-import { User, Calendar, Trophy, ChevronRight, CheckCircle2 } from "lucide-react";
+"use client"
+
+import { useState, useEffect } from "react";
+import { User, Calendar, Trophy, ChevronRight, CheckCircle2, MapPin, Clock, Zap } from "lucide-react";
 import Link from "next/link";
+import { SportIcon, type SportType } from "@/components/SportIcon";
+
+const SPORT_COLORS: Record<SportType, { border: string; bg: string; text: string }> = {
+  "Padel":        { border: "border-l-[#BFFF00]", bg: "bg-[#BFFF00]/10",  text: "text-[#BFFF00]"  },
+  "Tennis":       { border: "border-l-[#FFE600]", bg: "bg-[#FFE600]/10",  text: "text-[#FFE600]"  },
+  "Pickleball":   { border: "border-l-[#00CFFF]", bg: "bg-[#00CFFF]/10",  text: "text-[#00CFFF]"  },
+  "Beach Tennis": { border: "border-l-[#FF6B35]", bg: "bg-[#FF6B35]/10",  text: "text-[#FF6B35]"  },
+};
+
+const MOCK_GUERRILLA = [
+  {
+    id: "g1",
+    sport: "Padel" as SportType,
+    locationName: "Miramar Paddle Club",
+    distance: "0.8 km",
+    playersJoined: 3,
+    totalSlots: 4,
+    timeRemaining: "Starts in 22 min",
+    players: ["DR", "CM", "JL"],
+    court: "Court 3",
+  },
+  {
+    id: "g2",
+    sport: "Pickleball" as SportType,
+    locationName: "Parque Central",
+    distance: "1.2 km",
+    playersJoined: 2,
+    totalSlots: 4,
+    timeRemaining: "Starts in 45 min",
+    players: ["MR", "AV"],
+    court: "Court 1",
+  },
+  {
+    id: "g3",
+    sport: "Tennis" as SportType,
+    locationName: "Club Náutico",
+    distance: "2.4 km",
+    playersJoined: 1,
+    totalSlots: 2,
+    timeRemaining: "Starts in 1h 10min",
+    players: ["PG"],
+    court: "Court 5",
+  },
+];
 
 <<<<<<< HEAD
 <<<<<<< HEAD
@@ -338,44 +385,183 @@ const MOCK_SCHEDULED = [
 >>>>>>> 050bfbf (feat: finalize tournament organizer and home dashboard)
   {
     id: "m1",
+    sport: "Padel" as SportType,
     opponent: "Diego Ramos",
     date: "Today",
     time: "6:00 PM",
     court: "Court 2",
     location: "Miramar Paddle Club",
-    status: "confirmed",
   },
   {
     id: "m2",
+    sport: "Tennis" as SportType,
     opponent: "Carlos Rivera",
     date: "Tomorrow",
     time: "8:30 AM",
     court: "Court 1",
     location: "Parque Central",
-    status: "confirmed",
   },
 ];
 >>>>>>> 1e8b8b9 (Editing the app - guerrilla)
 
-export default function HomePage() {
+function LivePulse() {
   return (
-    <div className="min-h-screen bg-background text-foreground pb-20">
+    <span className="relative flex h-2 w-2 shrink-0">
+      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
+      <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
+    </span>
+  );
+}
+
+function PlayerAvatars({ initials }: { initials: string[] }) {
+  return (
+    <div className="flex -space-x-2">
+      {initials.map((init, i) => (
+        <div
+          key={i}
+          className="h-7 w-7 rounded-full bg-muted border-2 border-card flex items-center justify-center text-[10px] font-bold text-foreground"
+        >
+          {init}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function SlotBar({ filled, total }: { filled: number; total: number }) {
+  const pct = (filled / total) * 100;
+  const urgent = pct >= 75;
+  return (
+    <div className="w-full h-1.5 bg-muted rounded-full overflow-hidden">
+      <div
+        className={`h-full rounded-full transition-all ${urgent ? "bg-primary" : "bg-muted-foreground/40"}`}
+        style={{ width: `${pct}%` }}
+      />
+    </div>
+  );
+}
+
+export default function HomePage() {
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const timer = setInterval(() => setTick((t) => t + 1), 5000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const activePlayers = 12 + (tick % 3);
+
+  return (
+    <div className="min-h-screen bg-background text-foreground pb-24">
+      {/* Header */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
           <h1 className="font-mono text-2xl font-black text-primary tracking-tighter italic">
             SET<span className="text-foreground">POINT</span>
           </h1>
-          <div className="h-10 w-10 bg-muted rounded-full flex items-center justify-center border border-border overflow-hidden">
-            <User className="h-6 w-6 text-muted-foreground" />
+          <div className="flex items-center gap-3">
+            <div className="flex items-center gap-1.5 text-xs text-muted-foreground bg-muted px-2.5 py-1.5 rounded-full">
+              <LivePulse />
+              <span className="font-semibold text-foreground">{activePlayers}</span>
+              <span>playing now</span>
+            </div>
+            <div className="h-9 w-9 bg-muted rounded-full flex items-center justify-center border border-border">
+              <User className="h-5 w-5 text-muted-foreground" />
+            </div>
           </div>
         </div>
       </header>
 
-      <main className="max-w-md mx-auto px-4 pt-6 flex flex-col gap-8">
+      <main className="max-w-md mx-auto px-4 pt-5 flex flex-col gap-8">
+
+        {/* HERO: Open Games */}
+        <section>
+          <div className="flex justify-between items-end mb-4">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Zap className="h-4 w-4 text-primary fill-primary" />
+                <span className="text-xs font-bold uppercase tracking-widest text-primary">Live Near You</span>
+              </div>
+              <h2 className="text-2xl font-black text-foreground leading-none">Open Games</h2>
+            </div>
+            <Link
+              href="/book"
+              className="text-xs font-bold text-muted-foreground hover:text-primary transition-colors flex items-center gap-0.5"
+            >
+              See all <ChevronRight className="h-3 w-3" />
+            </Link>
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {MOCK_GUERRILLA.map((game) => {
+              const colors = SPORT_COLORS[game.sport];
+              const isFull = game.playersJoined >= game.totalSlots;
+              const spotsLeft = game.totalSlots - game.playersJoined;
+              return (
+                <div
+                  key={game.id}
+                  className={`bg-card border border-border border-l-4 ${colors.border} rounded-xl p-4 flex flex-col gap-3 shadow-sm`}
+                >
+                  {/* Top row */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex items-center gap-3">
+                      <div className={`${colors.bg} p-2 rounded-lg`}>
+                        <SportIcon sport={game.sport} className={`h-5 w-5 ${colors.text}`} />
+                      </div>
+                      <div>
+                        <h3 className="font-bold text-base text-foreground leading-tight">{game.sport}</h3>
+                        <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
+                          <MapPin className="h-3 w-3" />
+                          {game.locationName} · {game.distance}
+                        </p>
+                      </div>
+                    </div>
+                    <div className={`${colors.bg} ${colors.text} text-xs font-bold px-2 py-1 rounded-lg whitespace-nowrap`}>
+                      {game.court}
+                    </div>
+                  </div>
+
+                  {/* Slot fill bar */}
+                  <SlotBar filled={game.playersJoined} total={game.totalSlots} />
+
+                  {/* Bottom row */}
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <PlayerAvatars initials={game.players} />
+                      <span className="text-xs text-muted-foreground">
+                        {isFull ? "Full" : `${spotsLeft} spot${spotsLeft !== 1 ? "s" : ""} left`}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className={`text-xs font-medium flex items-center gap-1 ${colors.text}`}>
+                        <Clock className="h-3 w-3" />
+                        {game.timeRemaining}
+                      </span>
+                      <button
+                        disabled={isFull}
+                        className={`px-4 py-1.5 rounded-full font-bold text-xs transition-all active:scale-95 ${
+                          isFull
+                            ? "bg-muted text-muted-foreground cursor-not-allowed"
+                            : "bg-primary text-primary-foreground hover:opacity-90 shadow-[0_0_14px_rgba(191,255,0,0.4)]"
+                        }`}
+                      >
+                        {isFull ? "Full" : "Join Now"}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </section>
+
         {/* Quick Actions */}
-        <section className="grid grid-cols-2 gap-4">
-          <Link href="/tournament" className="bg-card border border-border hover:border-primary/50 transition-colors p-5 rounded-2xl flex flex-col gap-3 group">
-            <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+        <section className="grid grid-cols-2 gap-3">
+          <Link
+            href="/tournament"
+            className="bg-card border border-border hover:border-primary/50 transition-all p-5 rounded-2xl flex flex-col gap-3 group hover:shadow-[0_0_20px_rgba(191,255,0,0.08)]"
+          >
+            <div className="h-10 w-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
               <Trophy className="h-5 w-5" />
             </div>
             <div>
@@ -383,9 +569,11 @@ export default function HomePage() {
               <p className="text-xs text-muted-foreground mt-0.5">Setup Draw</p>
             </div>
           </Link>
-          
-          <Link href="/book" className="bg-card border border-border hover:border-secondary/50 transition-colors p-5 rounded-2xl flex flex-col gap-3 group">
-            <div className="h-10 w-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
+          <Link
+            href="/book"
+            className="bg-card border border-border hover:border-secondary/50 transition-all p-5 rounded-2xl flex flex-col gap-3 group hover:shadow-[0_0_20px_rgba(255,230,0,0.08)]"
+          >
+            <div className="h-10 w-10 rounded-xl bg-secondary/10 text-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
               <Calendar className="h-5 w-5" />
             </div>
             <div>
@@ -395,43 +583,45 @@ export default function HomePage() {
           </Link>
         </section>
 
-        {/* Upcoming Matches */}
+        {/* My Matches */}
         <section className="flex flex-col gap-4">
-          <div className="flex justify-between items-end mb-2">
-            <div>
-              <h2 className="text-xl font-black text-foreground">My Matches</h2>
-              <p className="text-sm text-muted-foreground">Your upcoming schedule</p>
-            </div>
+          <div>
+            <h2 className="text-xl font-black text-foreground">My Matches</h2>
+            <p className="text-sm text-muted-foreground">Your upcoming schedule</p>
           </div>
-          
-          <div className="flex flex-col gap-4">
-            {MOCK_SCHEDULED.map((match) => (
-              <div key={match.id} className="bg-card border border-border rounded-xl p-4 flex flex-col gap-4 shadow-sm relative overflow-hidden">
-                <div className="absolute top-0 right-0 p-4">
-                  <CheckCircle2 className="h-5 w-5 text-primary" />
+
+          <div className="flex flex-col gap-3">
+            {MOCK_SCHEDULED.map((match) => {
+              const colors = SPORT_COLORS[match.sport];
+              return (
+                <div
+                  key={match.id}
+                  className={`bg-card border border-border border-l-4 ${colors.border} rounded-xl p-4 flex flex-col gap-3 shadow-sm relative overflow-hidden`}
+                >
+                  <div className="absolute top-3 right-3">
+                    <CheckCircle2 className="h-4 w-4 text-primary" />
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <div className={`${colors.bg} p-1.5 rounded-md`}>
+                      <SportIcon sport={match.sport} className={`h-4 w-4 ${colors.text}`} />
+                    </div>
+                    <span className={`text-xs font-bold uppercase tracking-wider ${colors.text}`}>
+                      {match.date} · {match.time}
+                    </span>
+                  </div>
+                  <p className="text-lg font-black text-foreground leading-none">vs. {match.opponent}</p>
+                  <div className="flex justify-between items-center text-sm border-t border-border pt-3">
+                    <span className="text-muted-foreground font-medium text-xs">{match.location}</span>
+                    <span className="bg-muted px-2 py-1 rounded-lg font-bold text-xs text-foreground">
+                      {match.court}
+                    </span>
+                  </div>
                 </div>
-                
-                <div className="flex flex-col gap-1">
-                  <span className="text-xs font-bold uppercase tracking-wider text-secondary">
-                    {match.date} • {match.time}
-                  </span>
-                  <p className="text-lg font-bold text-foreground">
-                    vs. {match.opponent}
-                  </p>
-                </div>
-                
-                <div className="flex justify-between items-center text-sm border-t border-border pt-3 mt-1">
-                  <span className="text-muted-foreground font-medium">
-                    {match.location}
-                  </span>
-                  <span className="bg-muted px-2 py-1 rounded font-bold text-foreground">
-                    {match.court}
-                  </span>
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         </section>
+
       </main>
 <<<<<<< HEAD
 
@@ -475,4 +665,3 @@ export default function HomePage() {
     </div>
   );
 }
-
