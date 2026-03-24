@@ -1,8 +1,7 @@
-import { User } from "lucide-react";
-import { GuerrillaCard } from "@/components/GuerrillaCard";
-import type { SportType } from "@/components/SportIcon";
+import { User, Calendar, Trophy, ChevronRight, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
 
+<<<<<<< HEAD
 <<<<<<< HEAD
 import type React from "react"
 
@@ -334,41 +333,26 @@ export default function TennisMatchOrganizer() {
   }
 =======
 const MOCK_GAMES = [
+=======
+const MOCK_SCHEDULED = [
+>>>>>>> 050bfbf (feat: finalize tournament organizer and home dashboard)
   {
-    id: "g1",
-    sport: "Padel" as SportType,
-    locationName: "Miramar Paddle Club",
-    distance: "0.8 mi away",
-    playersJoined: 3,
-    totalSlots: 4,
-    timeRemaining: "Starts in 22 min",
+    id: "m1",
+    opponent: "Diego Ramos",
+    date: "Today",
+    time: "6:00 PM",
+    court: "Court 2",
+    location: "Miramar Paddle Club",
+    status: "confirmed",
   },
   {
-    id: "g2",
-    sport: "Tennis" as SportType,
-    locationName: "Parque Central",
-    distance: "1.5 mi away",
-    playersJoined: 2,
-    totalSlots: 4,
-    timeRemaining: "Starts in 45 min",
-  },
-  {
-    id: "g3",
-    sport: "Beach Tennis" as SportType,
-    locationName: "Condado Beach Courts",
-    distance: "2.1 mi away",
-    playersJoined: 4,
-    totalSlots: 4,
-    timeRemaining: "Starts in 1 hr",
-  },
-  {
-    id: "g4",
-    sport: "Pickleball" as SportType,
-    locationName: "Parque Luis A. Ferré",
-    distance: "0.2 mi away",
-    playersJoined: 1,
-    totalSlots: 4,
-    timeRemaining: "Starts in 2 hrs",
+    id: "m2",
+    opponent: "Carlos Rivera",
+    date: "Tomorrow",
+    time: "8:30 AM",
+    court: "Court 1",
+    location: "Parque Central",
+    status: "confirmed",
   },
 ];
 >>>>>>> 1e8b8b9 (Editing the app - guerrilla)
@@ -376,7 +360,6 @@ const MOCK_GAMES = [
 export default function HomePage() {
   return (
     <div className="min-h-screen bg-background text-foreground pb-20">
-      {/* Top Bar */}
       <header className="sticky top-0 z-50 bg-background/80 backdrop-blur-md border-b border-border">
         <div className="max-w-md mx-auto px-4 h-16 flex items-center justify-between">
           <h1 className="font-mono text-2xl font-black text-primary tracking-tighter italic">
@@ -389,36 +372,63 @@ export default function HomePage() {
       </header>
 
       <main className="max-w-md mx-auto px-4 pt-6 flex flex-col gap-8">
-        {/* Hero CTA */}
-        <section>
-          <Link href="/book" className="block w-full">
-            <div className="bg-primary hover:bg-primary/90 transition-colors rounded-2xl p-6 text-primary-foreground shadow-[0_0_30px_rgba(191,255,0,0.15)] flex flex-col items-center justify-center gap-2 group active:scale-[0.98]">
-              <span className="text-3xl group-hover:-translate-y-1 transition-transform">📍</span>
-              <h2 className="text-xl font-black text-center uppercase tracking-tight">
-                Find a Game Near Me
-              </h2>
-              <p className="text-sm font-medium opacity-80">
-                Last Minute Guerrilla
-              </p>
+        {/* Quick Actions */}
+        <section className="grid grid-cols-2 gap-4">
+          <Link href="/tournament" className="bg-card border border-border hover:border-primary/50 transition-colors p-5 rounded-2xl flex flex-col gap-3 group">
+            <div className="h-10 w-10 rounded-full bg-primary/10 text-primary flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Trophy className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-foreground">Tournament</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Setup Draw</p>
             </div>
           </Link>
-          <div className="mt-4 flex justify-center">
-            <Link href="/tournament" className="text-sm font-bold text-muted-foreground hover:text-foreground underline underline-offset-4 decoration-border transition-colors">
-              View Tournament Brackets
-            </Link>
-          </div>
+          
+          <Link href="/book" className="bg-card border border-border hover:border-secondary/50 transition-colors p-5 rounded-2xl flex flex-col gap-3 group">
+            <div className="h-10 w-10 rounded-full bg-secondary/10 text-secondary flex items-center justify-center group-hover:scale-110 transition-transform">
+              <Calendar className="h-5 w-5" />
+            </div>
+            <div>
+              <h3 className="font-bold text-sm text-foreground">Schedule</h3>
+              <p className="text-xs text-muted-foreground mt-0.5">Book Court</p>
+            </div>
+          </Link>
         </section>
 
-        {/* Feed */}
+        {/* Upcoming Matches */}
         <section className="flex flex-col gap-4">
-          <div className="flex items-center gap-2 mb-2">
-            <span className="text-xl">🔥</span>
-            <h2 className="text-lg font-black text-foreground">Live Games Near You</h2>
+          <div className="flex justify-between items-end mb-2">
+            <div>
+              <h2 className="text-xl font-black text-foreground">My Matches</h2>
+              <p className="text-sm text-muted-foreground">Your upcoming schedule</p>
+            </div>
           </div>
           
           <div className="flex flex-col gap-4">
-            {MOCK_GAMES.map((game) => (
-              <GuerrillaCard key={game.id} {...game} />
+            {MOCK_SCHEDULED.map((match) => (
+              <div key={match.id} className="bg-card border border-border rounded-xl p-4 flex flex-col gap-4 shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4">
+                  <CheckCircle2 className="h-5 w-5 text-primary" />
+                </div>
+                
+                <div className="flex flex-col gap-1">
+                  <span className="text-xs font-bold uppercase tracking-wider text-secondary">
+                    {match.date} • {match.time}
+                  </span>
+                  <p className="text-lg font-bold text-foreground">
+                    vs. {match.opponent}
+                  </p>
+                </div>
+                
+                <div className="flex justify-between items-center text-sm border-t border-border pt-3 mt-1">
+                  <span className="text-muted-foreground font-medium">
+                    {match.location}
+                  </span>
+                  <span className="bg-muted px-2 py-1 rounded font-bold text-foreground">
+                    {match.court}
+                  </span>
+                </div>
+              </div>
             ))}
           </div>
         </section>
@@ -465,3 +475,4 @@ export default function HomePage() {
     </div>
   );
 }
+
