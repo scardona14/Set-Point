@@ -4,46 +4,47 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Dark athletic palette: Navy #1A1F2E, Yellow #F5C542, Teal #2AC3B5 */
-  --background: oklch(0.16 0.02 260); /* Deep navy #1A1F2E */
-  --foreground: oklch(0.95 0 0); /* White text #F2F2F2 */
-  --card: oklch(0.2 0.02 260); /* Slightly lighter navy #262B3C */
-  --card-foreground: oklch(0.95 0 0); /* White text on cards */
-  --popover: oklch(0.2 0.02 260); /* Card-level navy for popovers */
-  --popover-foreground: oklch(0.95 0 0); /* White popover text */
-  --primary: oklch(0.82 0.14 85); /* Warm yellow accent #F5C542 */
-  --primary-foreground: oklch(0.16 0.02 260); /* Dark navy text on yellow */
-  --secondary: oklch(0.72 0.12 175); /* Teal accent #2AC3B5 */
-  --secondary-foreground: oklch(0.16 0.02 260); /* Dark navy text on teal */
-  --muted: oklch(0.23 0.015 260); /* Muted navy surface */
-  --muted-foreground: oklch(0.68 0.01 260); /* Subdued gray text #A0A6B8 */
-  --accent: oklch(0.72 0.12 175); /* Teal accent */
-  --accent-foreground: oklch(0.16 0.02 260); /* Dark text on accent */
-  --destructive: oklch(0.55 0.22 25); /* Red for destructive actions */
-  --destructive-foreground: oklch(0.95 0 0); /* White text on destructive */
-  --border: oklch(0.28 0.015 260); /* Subtle navy border */
-  --input: oklch(0.23 0.015 260); /* Dark input background */
-  --ring: oklch(0.82 0.14 85 / 0.5); /* Yellow focus ring */
-  --chart-1: oklch(0.82 0.14 85); /* Yellow chart */
-  --chart-2: oklch(0.72 0.12 175); /* Teal chart */
-  --chart-3: oklch(0.55 0.22 25); /* Red chart */
-  --chart-4: oklch(0.65 0.15 30); /* Orange chart */
-  --chart-5: oklch(0.7 0.18 40); /* Amber chart */
-  --radius: 0.625rem; /* 10px rounded corners */
-  --sidebar: oklch(0.18 0.02 260); /* Navy sidebar */
-  --sidebar-foreground: oklch(0.95 0 0); /* White sidebar text */
-  --sidebar-primary: oklch(0.82 0.14 85); /* Yellow sidebar primary */
-  --sidebar-primary-foreground: oklch(0.16 0.02 260); /* Dark sidebar primary text */
-  --sidebar-accent: oklch(0.72 0.12 175); /* Teal sidebar accent */
-  --sidebar-accent-foreground: oklch(0.16 0.02 260); /* Dark sidebar accent text */
-  --sidebar-border: oklch(0.28 0.015 260); /* Navy sidebar border */
-  --sidebar-ring: oklch(0.82 0.14 85 / 0.5); /* Yellow sidebar ring */
+  /* Dark athletic palette for bright outdoor use */
+  --background: #0a0a0a;
+  --foreground: #f5f5f5;
+  --card: #141414;
+  --card-foreground: #f5f5f5;
+  --popover: #141414;
+  --popover-foreground: #f5f5f5;
+  --primary: #BFFF00; /* Neon Yellow-Green */
+  --primary-foreground: #0a0a0a;
+  --secondary: #FFE600; /* Electric Yellow */
+  --secondary-foreground: #0a0a0a;
+  --muted: #1f1f1f;
+  --muted-foreground: #a3a3a3;
+  --accent: #1f1f1f;
+  --accent-foreground: #BFFF00;
+  --destructive: #ef4444;
+  --destructive-foreground: #ffffff;
+  --border: #1f1f1f;
+  --input: #1f1f1f;
+  --ring: #BFFF00;
+  --chart-1: #BFFF00;
+  --chart-2: #FFE600;
+  --chart-3: #ef4444;
+  --chart-4: #f97316;
+  --chart-5: #eab308;
+  --radius: 0.75rem; 
+  --sidebar: #141414;
+  --sidebar-foreground: #f5f5f5;
+  --sidebar-primary: #BFFF00;
+  --sidebar-primary-foreground: #0a0a0a;
+  --sidebar-accent: #1f1f1f;
+  --sidebar-accent-foreground: #f5f5f5;
+  --sidebar-border: #1f1f1f;
+  --sidebar-ring: #BFFF00;
+  --font-inter: "Inter", sans-serif;
   --font-montserrat: "Montserrat", sans-serif;
   --font-poppins: "Poppins", sans-serif;
 }
 
 @theme inline {
-  --font-sans: var(--font-poppins);
+  --font-sans: var(--font-inter), var(--font-poppins);
   --font-serif: var(--font-montserrat);
   --font-mono: "Orbitron", ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, monospace;
 
