@@ -54,8 +54,17 @@ export const viewport: Viewport = {
   themeColor: "#ccff00",
 =======
   title: "Set Point | San Juan Racquet Sports",
-  description: "Find pickup matches, book courts, and manage your racquet sports in San Juan, PR.",
-  generator: 'v0.app'
+  description: "Find pickup matches, book courts, and manage your racquet sports in San Juan, PR. / Encuentra partidos, reserva canchas y gestiona tus deportes de raqueta en San Juan, PR.",
+  generator: 'v0.app',
+  manifest: '/manifest.json',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'black-translucent',
+    title: 'Set Point',
+  },
+  icons: {
+    apple: '/apple-icon.png',
+  },
 }
 
 export const viewport: Viewport = {
