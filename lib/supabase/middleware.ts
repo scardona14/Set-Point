@@ -34,9 +34,9 @@ export async function updateSession(request: NextRequest) {
   } = await supabase.auth.getUser()
 
   // Protected routes - redirect to login if not authenticated
-  const protectedPaths = ["/"]
+  const protectedPaths = ["/dashboard"]
   const isProtectedPath = protectedPaths.some(
-    (path) => request.nextUrl.pathname === path
+    (path) => request.nextUrl.pathname.startsWith(path)
   )
 
   if (isProtectedPath && !user) {
@@ -45,7 +45,7 @@ export async function updateSession(request: NextRequest) {
     return NextResponse.redirect(url)
   }
 
-  // Auth routes - redirect to home if already authenticated
+  // Auth routes - redirect to dashboard if already authenticated
   const authPaths = ["/auth/login", "/auth/sign-up"]
   const isAuthPath = authPaths.some((path) =>
     request.nextUrl.pathname.startsWith(path)
@@ -53,7 +53,14 @@ export async function updateSession(request: NextRequest) {
 
   if (isAuthPath && user) {
     const url = request.nextUrl.clone()
-    url.pathname = "/"
+    url.pathname = "/dashboard"
+    return NextResponse.redirect(url)
+  }
+
+  // Root path - redirect to dashboard if authenticated, show landing if not
+  if (request.nextUrl.pathname === "/" && user) {
+    const url = request.nextUrl.clone()
+    url.pathname = "/dashboard"
     return NextResponse.redirect(url)
   }
 

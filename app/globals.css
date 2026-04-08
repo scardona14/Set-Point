@@ -42,6 +42,37 @@
   --font-poppins: "Poppins", sans-serif;
 }
 
+/* Light theme */
+.light {
+  --background: oklch(0.98 0.005 260); /* Off-white #F8F9FC */
+  --foreground: oklch(0.16 0.02 260); /* Dark navy text #1A1F2E */
+  --card: oklch(1 0 0); /* Pure white cards */
+  --card-foreground: oklch(0.16 0.02 260); /* Dark navy text */
+  --popover: oklch(1 0 0); /* White popovers */
+  --popover-foreground: oklch(0.16 0.02 260); /* Dark text */
+  --primary: oklch(0.65 0.18 85); /* Darker yellow for contrast #D4A017 */
+  --primary-foreground: oklch(0.16 0.02 260); /* Dark text on primary */
+  --secondary: oklch(0.55 0.12 175); /* Darker teal #1E9B8F */
+  --secondary-foreground: oklch(1 0 0); /* White text on secondary */
+  --muted: oklch(0.94 0.01 260); /* Light gray surface #EBEEF5 */
+  --muted-foreground: oklch(0.45 0.02 260); /* Medium gray text #6B7280 */
+  --accent: oklch(0.55 0.12 175); /* Teal accent */
+  --accent-foreground: oklch(1 0 0); /* White on accent */
+  --destructive: oklch(0.55 0.22 25); /* Red */
+  --destructive-foreground: oklch(1 0 0); /* White on destructive */
+  --border: oklch(0.88 0.01 260); /* Light gray border #D1D5DB */
+  --input: oklch(0.96 0.005 260); /* Light input background */
+  --ring: oklch(0.65 0.18 85 / 0.5); /* Yellow focus ring */
+  --sidebar: oklch(0.96 0.005 260); /* Light sidebar */
+  --sidebar-foreground: oklch(0.16 0.02 260); /* Dark sidebar text */
+  --sidebar-primary: oklch(0.65 0.18 85); /* Yellow sidebar primary */
+  --sidebar-primary-foreground: oklch(0.16 0.02 260); /* Dark text */
+  --sidebar-accent: oklch(0.55 0.12 175); /* Teal sidebar accent */
+  --sidebar-accent-foreground: oklch(1 0 0); /* White text */
+  --sidebar-border: oklch(0.88 0.01 260); /* Light border */
+  --sidebar-ring: oklch(0.65 0.18 85 / 0.5); /* Yellow ring */
+}
+
 @theme inline {
   --font-sans: var(--font-poppins);
   --font-serif: var(--font-montserrat);
